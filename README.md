@@ -9,10 +9,14 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
 ```text
 ├── MEIF
     ├── configs
+        ├── config.py     //project configuration
     ├── data
     ├── models
     ├── preprocess
     ├── test
+    ├── tmp
     ├── train
     ├── util
+        ├── MEIF.py     //MEIF helper class
+        ├── ECIF.py     //ECIF helper class, only for reference and comparative experiments
 ```
