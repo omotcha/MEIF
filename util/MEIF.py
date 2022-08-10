@@ -11,6 +11,8 @@ from itertools import product
 from rdkit.ML.Descriptors.MoleculeDescriptors import MolecularDescriptorCalculator
 from rdkit import Chem
 import pandas as pd
+from scipy.spatial.distance import cdist
+
 PROTEIN_ELEMENTS = ["pC", "pN", "pO", "pS", "pOth"]
 LIGAND_ELEMENTS = ["lBr", "lC", "lCl", "lF", "lI", "lN", "lO", "lP", "lS", "lOth"]
 LIGAND_DESC = ['MaxEStateIndex', 'MinEStateIndex', 'MaxAbsEStateIndex', 'MinAbsEStateIndex',
@@ -84,19 +86,109 @@ class MEIF:
                 entry.append(float("{0:.4f}".format(pos.z)))
                 ligd_atoms.append(entry)
         df = pd.DataFrame(ligd_atoms)
-        df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
-        assert len(set(df["ECIF_ATOM_TYPE"]) - set(LIGAND_ELEMENTS)) == 0
+        df.columns = ["ATOM_INDEX", "ATOM_TYPE", "X", "Y", "Z"]
+        assert len(set(df["ATOM_TYPE"]) - set(LIGAND_ELEMENTS)) == 0
         return df
 
+    def _load_protein(self, f_prot):
+        """
+        This function takes a PDB for a protein as input and returns a pandas DataFrame
+        with its atom types labeled according to MEIF
+        :param f_prot: protein file in PDB format
+        :return: pandas DataFrame
+        """
+        fp = open(f_prot)
+        prot_atoms = []
+        for line in fp:
+            if line[:4] == "ATOM":
+                candidate_symbol = line[12:16].replace(" ", "")
+                if len(candidate_symbol) < 4 and candidate_symbol[0] != "H" or (
+                        len(candidate_symbol) == 4 and candidate_symbol[0] != "H" and candidate_symbol[1] != "H"):
+                    if "p" + candidate_symbol[0] not in PROTEIN_ELEMENTS:
+                        candidate_symbol = "Oth"
+                    else:
+                        candidate_symbol = candidate_symbol[0]
+                    prot_atoms.append([int(line[6:11]),
+                                       "p" + candidate_symbol,
+                                       float(line[30:38]),
+                                       float(line[38:46]),
+                                       float(line[46:54])])
+        fp.close()
+        df = pd.DataFrame(prot_atoms, columns=["ATOM_INDEX", "ATOM_TYPE", "X", "Y", "Z"])
+        assert list(df["ATOM_TYPE"].isna()).count(True) == 0
+        return df
+
+    def _get_ppl(self, f_prot, f_ligd, pp_dc=6.0, pl_dc=6.0, maximum_neighbours=20):
+        """
+        This function returns ppl meshes for given distance cutoffs and maximum number of protein neighbours
+        :param f_prot: protein file in PDB format
+        :param f_ligd: ligand file in SDF format
+        :param pp_dc: the protein-protein distance cutoff
+        :param pl_dc: the protein-ligand distance cutoff
+        :param maximum_neighbours: maximum number of protein neighbours
+        :return: pandas DataFrame that stands for ppl meshes
+        """
+        P = self._load_protein(f_prot)
+        L = self._load_ligand(f_ligd)
+
+        # filter out protein atoms that are not in "pocket"
+        for i in ["X", "Y", "Z"]:
+            P = P[P[i] < float(L[i].max()) + pl_dc]
+            P = P[P[i] > float(L[i].min()) - pl_dc]
+
+        PL = list(product(P["ATOM_TYPE"], L["ATOM_TYPE"]))
+        PL_INDEX = list(product(P["ATOM_INDEX"], L["ATOM_INDEX"]))
+        PL = [x[0] + "-" + x[1] for x in PL]
+        PL_INDEX = [(x[0], x[1]) for x in PL_INDEX]
+        PL = pd.DataFrame(PL, columns=["PL_PAIR"])
+        PL_INDEX = pd.DataFrame(PL_INDEX, columns=["PID", "LID"])
+        Dist_PL = cdist(P[["X", "Y", "Z"]], L[["X", "Y", "Z"]], metric="euclidean")
+        Dist_PL = Dist_PL.reshape(Dist_PL.shape[0] * Dist_PL.shape[1], 1)
+        Dist_PL = pd.DataFrame(Dist_PL, columns=["DISTANCE"])
+        PL = pd.concat([PL, Dist_PL, PL_INDEX], axis=1)
+        PL = PL[PL["DISTANCE"] <= pl_dc].reset_index(drop=True)
+        # print(PL)
+        PPL = PL.merge(PL, left_on="LID", right_on="LID")
+        PPL["PL_PAIR_x"] = PPL["PL_PAIR_x"].apply(lambda x: x.split("-")[0])
+        PPL["PPL_TYPE"] = (PPL["PL_PAIR_x"].astype(str)) + "-" + (PPL["PL_PAIR_y"].astype(str))
+        PPL = PPL.drop(columns=["PL_PAIR_x", "DISTANCE_x", "PL_PAIR_y", "DISTANCE_y"], axis=1)
+        Dist_PP = cdist(P[["X", "Y", "Z"]], P[["X", "Y", "Z"]], metric="euclidean")
+        Dist_PP = Dist_PP.reshape(Dist_PP.shape[0] * Dist_PP.shape[1], 1)
+        Dist_PP = pd.DataFrame(Dist_PP, columns=["PP_DISTANCE"])
+        PPL = pd.concat([PPL, Dist_PP], axis=1).dropna()
+        PPL = PPL[PPL["PP_DISTANCE"] < pp_dc].reset_index(drop=True)
+        PPL = PPL[PPL["PP_DISTANCE"] > 0.0]
+        return PPL
+
     # callables
+
+    def testLoader(self):
+        """
+        load protein/ligand tester
+        :return:
+        """
+        protein = os.path.join(tmp_dir, "6GGH_H_protein.pdb")
+        count_poth = 0
+        for atom in self._load_protein(protein)["ATOM_TYPE"]:
+            if len(atom) > 2:
+                count_poth += 1
+        print(count_poth)
+
+        ligand = os.path.join(tmp_dir, "6GGH_ligand.sdf")
+        count_loth = 0
+        for atom in self._load_ligand(ligand)["ATOM_TYPE"]:
+            if len(atom) > 2:
+                count_loth += 1
+        print(count_loth)
 
     def testMEIF(self):
         """
         MEIF tester
         :return:
         """
+        protein = os.path.join(tmp_dir, "6GGH_H_protein.pdb")
         ligand = os.path.join(tmp_dir, "6GGH_ligand.sdf")
-        print(self._load_ligand(ligand))
+        self._get_ppl(protein, ligand)
 
 
 if __name__ == '__main__':

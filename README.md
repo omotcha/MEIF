@@ -9,8 +9,8 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
 ```text
 ├── MEIF
     ├── configs
-        ├── config.py     //project configuration
-    ├── data
+        ├── config.py   //project configuration
+    ├── data            //auxiliary data files
     ├── models
     ├── preprocess
     ├── test
