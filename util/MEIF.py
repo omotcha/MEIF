@@ -60,13 +60,6 @@ class MEIF:
                      for i in product(LIGAND_ELEMENTS, LIGAND_ELEMENTS, PROTEIN_ELEMENTS)]
     _cached_protein = None
 
-    def _get_elem_head(self):
-        """
-        get all possible type combinations of meshed elements in proteins and ligands
-        :return: header(labels) of meshed element type
-        """
-        return self._possible_ppl + self._possible_llp
-
     def _load_ligand(self, f_ligd):
         """
         This function takes an SDF for a ligand as input and returns a pandas DataFrame
@@ -462,10 +455,16 @@ class MEIF:
         :return:
         """
         ligand = Chem.MolFromMolFile(f_ligd, sanitize=False)
-        ligand.UpdataPropertyCache(strict=False)
+        ligand.UpdatePropertyCache(strict=False)
         Chem.GetSymmSSSR(ligand)
         return self._desc_calculator.CalcDescriptors(ligand)
 
+    def get_elem_head(self):
+        """
+        get all possible type combinations of meshed elements in proteins and ligands
+        :return: header(labels) of meshed element type
+        """
+        return self._possible_ppl + self._possible_llp
 
     def testLoader(self):
         """

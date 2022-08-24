@@ -14,6 +14,7 @@ configs_dir = os.path.abspath(os.path.dirname(__file__))
 project_dir = os.path.split(configs_dir)[0]
 tmp_dir = os.path.join(project_dir, "tmp")
 data_dir = os.path.join(project_dir, "data")
+meif_data_dir = os.path.join(project_dir, "meif_data")
 
 # dataset used
 dataset_version = 2020
