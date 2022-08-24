@@ -1,6 +1,6 @@
 """
-platform: win
-env: any
+platform: any
+env: any with RDKit
 name: ECIF.py
 ECIF utils. forked from https://github.com/DIFACQUIM/ECIF/blob/master/ecif.py
 only for reference and comparative experiments
