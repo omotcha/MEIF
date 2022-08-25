@@ -95,7 +95,54 @@ class MEIF_Collector:
         f_ld.close()
         print("\n- Finished -\n")
 
+    def joint_collect(self, tag):
+        """
+        jointly collect meif, ld, and ground true value for each affinity entity
+        :param tag: added a postfix to generated csv file name, remember not to add diffusing symbols like ':'
+        :return:
+        """
+
+        def calc_meif(iname, itag, ipk, distance_cutoff):
+            if itag == "general":
+                itag = "general-minus-refined"
+            protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
+            ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
+            # suppose all cutoffs are changing in same order, this pattern can be modified anyway
+            try:
+                meif_list = self._meif_helper.get_meif(protein_file,
+                                                       ligand_file,
+                                                       float(distance_cutoff),
+                                                       float(distance_cutoff),
+                                                       float(distance_cutoff),
+                                                       None)
+                ld_list = list(self._meif_helper.get_ligand_features_by_file(ligand_file))
+            except Exception:
+                return
+            meif_writer.writerow([iname] + meif_list + ld_list + [ipk])
+            return
+
+        print("\nCollecting MEIF data: \n")
+        # affinity data are sorted by tag {core|general|refined}
+        aff_data = pd.read_csv(os.path.join(data_dir, "affinity_data.csv")).sort_values(by="tag", axis=0, ascending=True)
+        # for functional testing
+        # aff_data = aff_data[0:50]
+        meif_header = self._meif_helper.get_elem_head() + LIGAND_DESC
+        fp_len = len(meif_header)
+        meif_header = ["PDB"] + meif_header + ["pk"]
+        for d in self._distance_cutoffs:
+            print("\n distance_cutoff: {}\n".format(d))
+            if tag is None or tag == "":
+                f_meif = open(os.path.join(meif_data_dir, "MEIF_{}.csv".format(d)), 'a', newline='')
+            else:
+                f_meif = open(os.path.join(meif_data_dir, "MEIF_{}_{}.csv".format(d, tag)), 'a', newline='')
+            # write csv header
+            meif_writer = csv.writer(f_meif)
+            meif_writer.writerow(meif_header)
+            aff_data.apply(lambda x: calc_meif(x["name"], x["tag"], x["pk"], float(d)), axis=1)
+            f_meif.close()
+        print("\n- Finished -\n")
+
 
 if __name__ == '__main__':
     meif_collector = MEIF_Collector([6.0])
-    meif_collector.collect_meif("")
+    meif_collector.joint_collect("")
