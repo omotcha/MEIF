@@ -121,9 +121,9 @@ class ECIFP:
             symbol = atom.GetSymbol()
             if symbol != "H":
                 if symbol not in LIGAND_ELEMENTS:
-                    entry = [atom.GetIdx(), "LOTH"]
+                    entry = [int(atom.GetIdx()), "LOTH"]
                 else:
-                    entry = [atom.GetIdx(), self._get_atom_type(atom)]
+                    entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
                 pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
                 entry.append(float("{0:.4f}".format(pos.x)))
                 entry.append(float("{0:.4f}".format(pos.y)))
@@ -132,6 +132,33 @@ class ECIFP:
         df = pd.DataFrame(ligd_atoms)
         df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
         return df
+
+    def _load_ligand_old(self, sdf):
+        """
+        This function takes an SDF for a ligand as input and returns it as a pandas DataFrame with its atom types labeled according to ECIF
+        :param sdf: ligand file
+        :return: a pandas DataFrame for the ligand with ECIF::atom_types
+        """
+        # This function takes an SDF for a ligand as input and returns it as a pandas DataFrame
+
+        m = Chem.MolFromMolFile(sdf, sanitize=False)
+        m.UpdatePropertyCache(strict=False)
+
+        ECIF_atoms = []
+
+        for atom in m.GetAtoms():
+            if atom.GetSymbol() != "H":  # Include only non-hydrogen atoms
+                entry = [int(atom.GetIdx())]
+                entry.append(self._get_atom_type(atom))
+                pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                entry.append(float("{0:.4f}".format(pos.x)))
+                entry.append(float("{0:.4f}".format(pos.y)))
+                entry.append(float("{0:.4f}".format(pos.z)))
+                ECIF_atoms.append(entry)
+
+        df = pd.DataFrame(ECIF_atoms)
+        df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+        return (df)
 
     def _load_protein(self, f_prot):
         """
@@ -148,10 +175,6 @@ class ECIFP:
                 candidate_symbol = line[12:16].replace(" ", "")
                 if len(candidate_symbol) < 4 and candidate_symbol[0] != "H" or (
                         len(candidate_symbol) == 4 and candidate_symbol[0] != "H" and candidate_symbol[1] != "H"):
-                    if candidate_symbol[0] not in PROTEIN_ELEMENTS:
-                        candidate_symbol = "POTH"
-                    else:
-                        candidate_symbol = candidate_symbol[0]
                     prot_atoms.append([int(line[6:11]),
                                        line[17:20] + "-" + candidate_symbol,
                                        float(line[30:38]),
@@ -163,6 +186,38 @@ class ECIFP:
             ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
         df["ECIFP_ATOM_TYPE"].fillna("POTH")
         return df
+
+    def _load_protein_old(self, pdb):
+        """
+        This function takes a PDB for a protein as input and returns it as a pandas DataFrame with its atom types labeled according to ECIF
+        :param pdb: protein file
+        :return: a pandas DataFrame for the protein with ECIF::atom_types
+        """
+        Atom_Keys = pd.read_csv(os.path.join(data_dir, "keys.csv"), sep=",")
+        ECIF_atoms = []
+
+        f = open(pdb)
+        for i in f:
+            if i[:4] == "ATOM":
+                # Include only non-hydrogen atoms
+                if (len(i[12:16].replace(" ", "")) < 4 and i[12:16].replace(" ", "")[0] != "H") or (
+                        len(i[12:16].replace(" ", "")) == 4 and i[12:16].replace(" ", "")[1] != "H" and
+                        i[12:16].replace(" ", "")[0] != "H"):
+                    ECIF_atoms.append([int(i[6:11]),
+                                       i[17:20] + "-" + i[12:16].replace(" ", ""),
+                                       float(i[30:38]),
+                                       float(i[38:46]),
+                                       float(i[46:54])
+                                       ])
+
+        f.close()
+
+        df = pd.DataFrame(ECIF_atoms, columns=["ATOM_INDEX", "PDB_ATOM", "X", "Y", "Z"])
+        df = df.merge(Atom_Keys, left_on='PDB_ATOM', right_on='PDB_ATOM')[
+            ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
+        if list(df["ECIFP_ATOM_TYPE"].isna()).count(True) > 0:
+            print("WARNING: Protein contains unsupported atom types. Only supported atom-type pairs are counted.")
+        return (df)
 
     def _get_pl_pairs(self, protein_f, ligand_f, distance_cutoff=6.0):
         """
@@ -237,7 +292,7 @@ class ECIFP:
         ligand = Chem.MolFromMolFile(ligand_f, sanitize=False)
         ligand.UpdatePropertyCache(strict=False)
         Chem.GetSymmSSSR(ligand)
-        return self._DescCalc.CalcDescriptors(ligand)
+        return self._desc_calculator.CalcDescriptors(ligand)
 
     def get_ecifp(self, protein_f, ligand_f, distance_cutoff=6.0):
         """
@@ -249,12 +304,16 @@ class ECIFP:
         """
         Pairs = self._get_pl_pairs(protein_f, ligand_f, distance_cutoff=distance_cutoff)
         ECIFP = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
+        count = 0
+        for number in ECIFP:
+            if number != 0:
+                count += 1
+
         return ECIFP
 
     def get_ecifp_cached(self, ligand_f, distance_cutoff=6.0):
         """
         get the fingerprint-like array (ECIFP) for a protein-ligand pair, with cached protein
-        :param protein_f: pdb file name with dir
         :param ligand_f: sdf file name with dir
         :param distance_cutoff:
         :return:
@@ -263,24 +322,33 @@ class ECIFP:
         ECIFP = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
         return ECIFP
 
+    def get_possible_pl(self):
+        return self._possible_pl
+
     def testLoader(self):
         """
         load protein/ligand tester
         :return:
         """
         protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
+        prot_table = self._load_protein(protein)
+        old_prot_table = self._load_protein_old(protein)
         print(self._load_protein(protein))
-        ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
-        print(self._load_ligand(ligand))
+        # ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
+        # lig_table = self._load_ligand(ligand)
+        # old_lig_table = self._load_ligand_old(ligand)
+        # print(self._load_ligand(ligand))
+        # print(self._load_ligand_old(ligand))
 
     def testECIFP(self):
         """
         ECIFP tester
         :return:
         """
-        protein = os.path.join(tmp_dir, "1akt_protein.pdb")
-        ligand = os.path.join(tmp_dir, "1akt_ligand.sdf")
-        print(self.get_ecifp(protein, ligand, 6.0))
+        protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
+        ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
+        ECIFP = self.get_ecifp(protein, ligand, 6.0)
+        print(ECIFP.count(0)/len(ECIFP))
 
 
 if __name__ == '__main__':

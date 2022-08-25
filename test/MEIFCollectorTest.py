@@ -10,13 +10,13 @@ from preprocess.meif_collector import MEIF_Collector
 
 def testCollectMEIF():
     meif_collector = MEIF_Collector([6.0])
-    meif_collector.collect_meif("")
+    meif_collector.collect_meif("Test")
 
 
-def testCollectLD():
-    ld_collector = MEIF_Collector([6.0])
-    ld_collector.collect_ld("")
+# def testCollectLD():
+#     ld_collector = MEIF_Collector([6.0])
+#     ld_collector.collect_ld("Test")
 
 
 if __name__ == '__main__':
-    testCollectLD()
+    testCollectMEIF()

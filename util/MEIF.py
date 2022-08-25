@@ -100,10 +100,6 @@ class MEIF:
                 candidate_symbol = line[12:16].replace(" ", "")
                 if len(candidate_symbol) < 4 and candidate_symbol[0] != "H" or (
                         len(candidate_symbol) == 4 and candidate_symbol[0] != "H" and candidate_symbol[1] != "H"):
-                    if "p" + candidate_symbol[0] not in PROTEIN_ELEMENTS:
-                        candidate_symbol = "Oth"
-                    else:
-                        candidate_symbol = candidate_symbol[0]
                     prot_atoms.append([int(line[6:11]),
                                        "p" + candidate_symbol,
                                        float(line[30:38]),
@@ -111,7 +107,7 @@ class MEIF:
                                        float(line[46:54])])
         fp.close()
         df = pd.DataFrame(prot_atoms, columns=["ATOM_INDEX", "ATOM_TYPE", "X", "Y", "Z"])
-        assert list(df["ATOM_TYPE"].isna()).count(True) == 0
+        df["ATOM_TYPE"].fillna("pOth")
         return df
 
     def _get_mesh_tag(self, x, y, z):
@@ -490,12 +486,12 @@ class MEIF:
         MEIF tester
         :return:
         """
-        protein = os.path.join(tmp_dir, "1akt_protein.pdb")
-        ligand = os.path.join(tmp_dir, "1akt_ligand.sdf")
+        protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
+        ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
         ppl = self._get_ppl(protein, ligand)
         llp = self._get_llp(protein, ligand)
         MEIF = [list(ppl).count(x) for x in self._possible_ppl] + [list(llp).count(x) for x in self._possible_llp]
-        print(MEIF)
+        print(MEIF.count(0)/len(MEIF))
 
 
 if __name__ == '__main__':

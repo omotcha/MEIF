@@ -18,6 +18,7 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
         ├── exp_log                 //for experiments
     ├── preprocess
         ├── meif_collector.py       //collect MEIF fingerprints of all protein-ligand pairs
+        ├── ecifp_collector.py      //collect ECIFP fingerprints of all protein-ligand pairs
     ├── test                        //tests
     ├── tmp
     ├── train
