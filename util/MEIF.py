@@ -490,8 +490,8 @@ class MEIF:
         MEIF tester
         :return:
         """
-        protein = os.path.join(tmp_dir, "6GGH_H_protein.pdb")
-        ligand = os.path.join(tmp_dir, "6GGH_ligand.sdf")
+        protein = os.path.join(tmp_dir, "1akt_protein.pdb")
+        ligand = os.path.join(tmp_dir, "1akt_ligand.sdf")
         ppl = self._get_ppl(protein, ligand)
         llp = self._get_llp(protein, ligand)
         MEIF = [list(ppl).count(x) for x in self._possible_ppl] + [list(llp).count(x) for x in self._possible_llp]
