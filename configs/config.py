@@ -31,6 +31,11 @@ index_file_dir = {
     "refined": "E:\\datasets\\dataset\\pdbbind2020\\index\\INDEX_refined_data.2020",
     "core": "E:\\datasets\\dataset\\pdbbind2016\\PDBbind_2016_plain_text_index\\index\\INDEX_core_data.2016"
 }
+casf_dir = {
+    "base": "E:\\datasets\\casf2016\\CASF-2016",
+    "core": "E:\\datasets\\casf2016\\CASF-2016\\coreset",
+    "decoys": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking"
+}
 
 # models
 ecifp_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220825_085255", "models")

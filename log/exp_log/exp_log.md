@@ -38,3 +38,30 @@
 10       NeuralNetTorch  -1.398399  0.449546
 11       KNeighborsUnif  -1.497640  0.392478
 ```
+
+#### 3. ECIFP x CASF2016 Result compared with ECIF x CASF 2016 Result
+
+- scoring power
+
+Pearson correlation coefficient (R)
+
+Standard deviation in fitting (SD)
+```angular2html
+             R      SD
+ECIF     0.863    1.10
+ECIFP    0.977    0.47
+```
+
+- ranking power
+
+The Spearman correlation coefficient (SP) 
+
+The Kendall correlation coefficient (tau) 
+
+The Predictive index (PI) 
+
+```angular2html
+            SP      tau       PI
+ECIF     0.758    0.674    0.790
+ECIFP    0.961    0.933    0.971
+```

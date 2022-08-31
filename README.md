@@ -8,6 +8,8 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
 ## Structure
 ```text
 ├── MEIF
+    ├── casf                        //CASF analysis
+        ├── casf_support.py         //CASF supporter
     ├── configs
         ├── config.py               //project configuration
     ├── data                        //data processing

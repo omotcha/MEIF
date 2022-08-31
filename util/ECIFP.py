@@ -290,6 +290,8 @@ class ECIFP:
         :return:
         """
         ligand = Chem.MolFromMolFile(ligand_f, sanitize=False)
+        if ligand is None:
+            return None
         ligand.UpdatePropertyCache(strict=False)
         Chem.GetSymmSSSR(ligand)
         return self._desc_calculator.CalcDescriptors(ligand)

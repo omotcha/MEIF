@@ -70,8 +70,9 @@ class ECIFP_Collector:
             if itag == "general":
                 itag = "general-minus-refined"
             ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
-            ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
-            ld_writer.writerow([iname] + ld_list)
+            ret = self._ecifp_helper.get_ligand_features_by_file(ligand_file)
+            if ret is not None:
+                ld_writer.writerow([iname] + list(ret))
             return
 
         print("\nCollecting Ligand Descriptor data: \n")
@@ -135,4 +136,4 @@ class ECIFP_Collector:
 
 if __name__ == '__main__':
     ecifp_collector = ECIFP_Collector([6.0])
-    ecifp_collector.joint_collect("")
+    ecifp_collector.collect_ld("")
