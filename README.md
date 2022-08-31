@@ -32,5 +32,6 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
         ├── ECIF.py                 //ECIF helper class, only for reference and comparative experiments
         ├── ECIFP.py                //ECIFP helper class
         ├── MEIF.py                 //MEIF helper class
+        ├── RDKitHelper.py          //extend RDKit functionality
         
 ```

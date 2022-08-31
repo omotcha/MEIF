@@ -13,6 +13,7 @@ from rdkit.ML.Descriptors.MoleculeDescriptors import MolecularDescriptorCalculat
 from rdkit import Chem
 import pandas as pd
 from scipy.spatial.distance import cdist
+from util.RDKitHelper import Mol2MolSupplier
 
 PROTEIN_ELEMENTS = ["C", "N", "O", "S", "POTH"]
 LIGAND_ELEMENTS = ["Br", "C", "Cl", "F", "I", "N", "O", "P", "S", "LOTH"]
@@ -106,6 +107,34 @@ class ECIFP:
                     ]
 
         return ";".join(AtomType)
+
+    def _load_ligands(self, f_ligds):
+        """
+        for CASF docking power analysis
+        This function takes a mol2 for a list of decoys as input and returns a list of pandas DataFrame
+        :param f_ligds: decoys file in mol2 format
+        :return: a list of pandas DataFrame
+        """
+        ret = []
+        ligands = Mol2MolSupplier(f_ligds)
+        for m in ligands:
+            ligd_atoms = []
+            for atom in m.GetAtoms():
+                symbol = atom.GetSymbol()
+                if symbol != "H":
+                    if symbol not in LIGAND_ELEMENTS:
+                        entry = [int(atom.GetIdx()), "LOTH"]
+                    else:
+                        entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                    pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                    entry.append(float("{0:.4f}".format(pos.x)))
+                    entry.append(float("{0:.4f}".format(pos.y)))
+                    entry.append(float("{0:.4f}".format(pos.z)))
+                    ligd_atoms.append(entry)
+            df = pd.DataFrame(ligd_atoms)
+            df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+            ret.append(df)
+        return ret
 
     def _load_ligand(self, f_ligd):
         """
@@ -219,6 +248,36 @@ class ECIFP:
             print("WARNING: Protein contains unsupported atom types. Only supported atom-type pairs are counted.")
         return (df)
 
+    def get_pl_pairs_with_decoys_cached(self, decoy_f, distance_cutoff=6.0):
+        """
+        for CASF docking power analysis
+        This function returns the protein-decoys(multiple ligands) atom-type pairs for a given distance cutoff,
+             with cached protein
+        :param decoy_f: decoys file in mol2 format
+        :param distance_cutoff:
+        :return:
+        """
+        Target = self._cached_protein
+        Ligands = self._load_ligands(decoy_f)
+        ret = []
+        for Ligand in Ligands:
+            for i in ["X", "Y", "Z"]:
+                Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+                Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+            # Get all possible pairs
+            Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+            Pairs = [x[0] + "-" + x[1] for x in Pairs]
+            Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+            Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+            Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+            Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+            Pairs = pd.concat([Pairs, Distances], axis=1)
+            Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+            ret.append(Pairs)
+        return ret
+
     def _get_pl_pairs(self, protein_f, ligand_f, distance_cutoff=6.0):
         """
         This function returns the protein-ligand atom-type pairs for a given distance cutoff
@@ -275,6 +334,34 @@ class ECIFP:
         return Pairs
 
     # callables
+    def load_ligands(self, f_ligds):
+        """
+        for CASF docking power analysis
+        This function takes a mol2 for a list of decoys as input and returns a list of pandas DataFrame
+        :param f_ligds: decoys file in mol2 format
+        :return: a list of pandas DataFrame
+        """
+        ret = []
+        ligands = Mol2MolSupplier(f_ligds)
+        for m in ligands:
+            ligd_atoms = []
+            for atom in m.GetAtoms():
+                symbol = atom.GetSymbol()
+                if symbol != "H":
+                    if symbol not in LIGAND_ELEMENTS:
+                        entry = [int(atom.GetIdx()), "LOTH"]
+                    else:
+                        entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                    pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                    entry.append(float("{0:.4f}".format(pos.x)))
+                    entry.append(float("{0:.4f}".format(pos.y)))
+                    entry.append(float("{0:.4f}".format(pos.z)))
+                    ligd_atoms.append(entry)
+            df = pd.DataFrame(ligd_atoms)
+            df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+            ret.append(df)
+        return ret
+
     def cache_protein(self, f_prot):
         """
         In scenario where a single protein is frequently used, cache it first to MEIF helper
@@ -282,6 +369,13 @@ class ECIFP:
         :return:
         """
         self._cached_protein = self._load_protein(f_prot)
+
+    def get_cached_protein(self):
+        """
+        get the cached protein
+        :return:
+        """
+        return self._cached_protein
 
     def get_ligand_features_by_file(self, ligand_f):
         """
