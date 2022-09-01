@@ -26,11 +26,26 @@ dataset_dir = {
     "refined": "E:\\datasets\\dataset\\pdbbind2020\\refined-set",
     "core": "E:\\datasets\\dataset\\pdbbind2016\\coreset"
 }
+
+dataset_2016_dir = {
+    "base": "E:\\datasets\\dataset\\pdbbind2016",
+    "general-minus-refined": "E:\\datasets\\dataset\\pdbbind2016\\general-set-except-refined",
+    "refined": "E:\\datasets\\dataset\\pdbbind2020\\refined-set",
+    "core": "E:\\datasets\\dataset\\pdbbind2016\\coreset"
+}
+
 index_file_dir = {
     "general": "E:\\datasets\\dataset\\pdbbind2020\\index\\INDEX_general_PL_data.2020",
     "refined": "E:\\datasets\\dataset\\pdbbind2020\\index\\INDEX_refined_data.2020",
     "core": "E:\\datasets\\dataset\\pdbbind2016\\PDBbind_2016_plain_text_index\\index\\INDEX_core_data.2016"
 }
+
+index_file_2016_dir = {
+    "general": "E:\\datasets\\dataset\\pdbbind2016\\PDBbind_2016_plain_text_index\\index\\INDEX_general_PL_data.2016",
+    "refined": "E:\\datasets\\dataset\\pdbbind2016\\PDBbind_2016_plain_text_index\\index\\INDEX_refined_data.2016",
+    "core": "E:\\datasets\\dataset\\pdbbind2016\\PDBbind_2016_plain_text_index\\index\\INDEX_core_data.2016"
+}
+
 casf_dir = {
     "base": "E:\\datasets\\casf2016\\CASF-2016",
     "core": "E:\\datasets\\casf2016\\CASF-2016\\coreset",

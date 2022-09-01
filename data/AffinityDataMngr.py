@@ -5,7 +5,7 @@ name: AffinityDataMngr.py
 create affinity data file from dataset
 """
 import os
-from configs.config import dataset_version, platform_delimiter, index_file_dir, data_dir
+from configs.config import dataset_version, platform_delimiter, index_file_dir, data_dir, index_file_2016_dir
 import re
 import pandas as pd
 
@@ -55,14 +55,23 @@ class AffinityDataMngr:
         save all affinity data to affinity_data.csv
         :return:
         """
-        general_aff = self.get_aff_data_from_index_file(index_file_dir["general"], "general")
-        refined_aff = self.get_aff_data_from_index_file(index_file_dir["refined"], "refined")
-        core_aff = self.get_aff_data_from_index_file(index_file_dir["core"], "core")
+        if self._ds_version == 2016:
+            general_aff = self.get_aff_data_from_index_file(index_file_2016_dir["general"], "general")
+            refined_aff = self.get_aff_data_from_index_file(index_file_2016_dir["refined"], "refined")
+            core_aff = self.get_aff_data_from_index_file(index_file_2016_dir["core"], "core")
+        else:
+            general_aff = self.get_aff_data_from_index_file(index_file_dir["general"], "general")
+            refined_aff = self.get_aff_data_from_index_file(index_file_dir["refined"], "refined")
+            core_aff = self.get_aff_data_from_index_file(index_file_dir["core"], "core")
         mask_gr = general_aff["name"].isin(refined_aff["name"])
         general_aff.loc[mask_gr, "tag"] = "refined"
         mask_gc = general_aff["name"].isin(core_aff["name"])
         general_aff.loc[mask_gc, "tag"] = "core"
-        general_aff.to_csv(os.path.join(data_dir, "affinity_data.csv"))
+
+        if self._ds_version == 2016:
+            general_aff.to_csv(os.path.join(data_dir, "affinity_data_2016.csv"))
+        else:
+            general_aff.to_csv(os.path.join(data_dir, "affinity_data.csv"))
 
     def get_aff_data(self):
         """

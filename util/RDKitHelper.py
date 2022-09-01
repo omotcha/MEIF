@@ -38,3 +38,26 @@ def Mol2MolSupplier(file=None, sanitize=True):
             if m is not None:
                 mols.append(m)
     return mols
+
+
+def get_decoy_names(file=None):
+    """
+    get the decoy names from mol2 file with multiple decoys
+    :param file: mol2 file
+    :return:
+    """
+    names = []
+    with open(file, 'r') as f:
+        line = f.readline()
+        while not line.startswith("@<TRIPOS>MOLECULE"):
+            line = f.readline()
+        while not f.tell() == os.fstat(f.fileno()).st_size:
+            if line.startswith("@<TRIPOS>MOLECULE"):
+                line = f.readline()
+                names.append(line[:-1])
+                while not line.startswith("@<TRIPOS>MOLECULE"):
+                    line = f.readline()
+                    if f.tell() == os.fstat(f.fileno()).st_size:
+                        break
+
+    return names

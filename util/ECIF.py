@@ -139,7 +139,7 @@ class ECIF:
     def _load_ligand(self, f_ligd):
         """
         This function takes an SDF for a ligand as input and returns a pandas DataFrame
-        with its atom types labeled according to ECIFP
+        with its atom types labeled according to ECIF
         :param f_ligd ligand file in SDF format
         :return: pandas DataFrame
         """
@@ -150,7 +150,7 @@ class ECIF:
             symbol = atom.GetSymbol()
             if symbol != "H":
                 if symbol not in LIGAND_ELEMENTS:
-                    entry = [int(atom.GetIdx()), "LOTH"]
+                    continue
                 else:
                     entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
                 pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
@@ -159,7 +159,7 @@ class ECIF:
                 entry.append(float("{0:.4f}".format(pos.z)))
                 ligd_atoms.append(entry)
         df = pd.DataFrame(ligd_atoms)
-        df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+        df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
         return df
 
     def _load_ligand_old(self, sdf):
@@ -186,19 +186,19 @@ class ECIF:
                 ECIF_atoms.append(entry)
 
         df = pd.DataFrame(ECIF_atoms)
-        df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+        df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
         return (df)
 
     def _load_protein(self, f_prot):
         """
         This function takes a PDB for a protein as input and returns a pandas DataFrame
-        with its atom types labeled according to ECIFP
+        with its atom types labeled according to ECIF
         :param f_prot: protein file in PDB format
         :return: pandas DataFrame
         """
         fp = open(f_prot)
         prot_atoms = []
-        keys = pd.read_csv(os.path.join(data_dir, "keys.csv"), sep=",")
+        keys = pd.read_csv(os.path.join(data_dir, "keys_ecif.csv"), sep=",")
         for line in fp:
             if line[:4] == "ATOM":
                 candidate_symbol = line[12:16].replace(" ", "")
@@ -212,8 +212,7 @@ class ECIF:
         fp.close()
         df = pd.DataFrame(prot_atoms, columns=["ATOM_INDEX", "PDB_ATOM", "X", "Y", "Z"])
         df = df.merge(keys, left_on='PDB_ATOM', right_on='PDB_ATOM')[
-            ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
-        df["ECIFP_ATOM_TYPE"].fillna("POTH")
+            ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
         return df
 
     def _load_protein_old(self, pdb):
@@ -222,7 +221,7 @@ class ECIF:
         :param pdb: protein file
         :return: a pandas DataFrame for the protein with ECIF::atom_types
         """
-        Atom_Keys = pd.read_csv(os.path.join(data_dir, "keys.csv"), sep=",")
+        Atom_Keys = pd.read_csv(os.path.join(data_dir, "keys_ecif.csv"), sep=",")
         ECIF_atoms = []
 
         f = open(pdb)
@@ -243,8 +242,8 @@ class ECIF:
 
         df = pd.DataFrame(ECIF_atoms, columns=["ATOM_INDEX", "PDB_ATOM", "X", "Y", "Z"])
         df = df.merge(Atom_Keys, left_on='PDB_ATOM', right_on='PDB_ATOM')[
-            ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
-        if list(df["ECIFP_ATOM_TYPE"].isna()).count(True) > 0:
+            ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
+        if list(df["ECIF_ATOM_TYPE"].isna()).count(True) > 0:
             print("WARNING: Protein contains unsupported atom types. Only supported atom-type pairs are counted.")
         return (df)
 
@@ -266,9 +265,9 @@ class ECIF:
                 Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
 
             # Get all possible pairs
-            Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+            Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
             Pairs = [x[0] + "-" + x[1] for x in Pairs]
-            Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+            Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
             Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
             Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
             Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
@@ -295,9 +294,9 @@ class ECIF:
             Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
 
         # Get all possible pairs
-        Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+        Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
         Pairs = [x[0] + "-" + x[1] for x in Pairs]
-        Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+        Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
         Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
         Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
         Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
@@ -322,9 +321,9 @@ class ECIF:
             Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
 
         # Get all possible pairs
-        Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+        Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
         Pairs = [x[0] + "-" + x[1] for x in Pairs]
-        Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+        Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
         Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
         Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
         Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
@@ -352,9 +351,9 @@ class ECIF:
                 Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
 
             # Get all possible pairs
-            Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+            Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
             Pairs = [x[0] + "-" + x[1] for x in Pairs]
-            Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+            Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
             Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
             Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
             Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
@@ -379,7 +378,7 @@ class ECIF:
                 symbol = atom.GetSymbol()
                 if symbol != "H":
                     if symbol not in LIGAND_ELEMENTS:
-                        entry = [int(atom.GetIdx()), "LOTH"]
+                        continue
                     else:
                         entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
                     pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
@@ -388,13 +387,13 @@ class ECIF:
                     entry.append(float("{0:.4f}".format(pos.z)))
                     ligd_atoms.append(entry)
             df = pd.DataFrame(ligd_atoms)
-            df.columns = ["ATOM_INDEX", "ECIFP_ATOM_TYPE", "X", "Y", "Z"]
+            df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
             ret.append(df)
         return ret
 
     def cache_protein(self, f_prot):
         """
-        In scenario where a single protein is frequently used, cache it first to MEIF helper
+        In scenario where a single protein is frequently used, cache it first to ECIF helper
         :param f_prot: protein file in PDB format
         :return:
         """
@@ -444,37 +443,37 @@ class ECIF:
         Chem.GetSymmSSSR(ligand)
         return self._desc_calculator.CalcDescriptors(ligand)
 
-    def get_ecifp(self, protein_f, ligand_f, distance_cutoff=6.0):
+    def get_ecif(self, protein_f, ligand_f, distance_cutoff=6.0):
         """
-        get the fingerprint-like array (ECIFP) for a protein-ligand pair
+        get the fingerprint-like array (ECIF) for a protein-ligand pair
         :param protein_f: pdb file name with dir
         :param ligand_f: sdf file name with dir
         :param distance_cutoff:
         :return:
         """
         Pairs = self._get_pl_pairs(protein_f, ligand_f, distance_cutoff=distance_cutoff)
-        ecifp = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
+        ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
         count = 0
-        for number in ecifp:
+        for number in ecif:
             if number != 0:
                 count += 1
 
-        return ecifp
+        return ecif
 
-    def get_ecifp_cached(self, ligand_f, distance_cutoff=6.0):
+    def get_ecif_cached(self, ligand_f, distance_cutoff=6.0):
         """
-        get the fingerprint-like array (ECIFP) for a protein-ligand pair, with cached protein
+        get the fingerprint-like array (ECIF) for a protein-ligand pair, with cached protein
         :param ligand_f: sdf file name with dir
         :param distance_cutoff:
         :return:
         """
         Pairs = self._get_pl_pairs_cached(ligand_f, distance_cutoff=distance_cutoff)
-        ecifp = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
-        return ecifp
+        ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
+        return ecif
 
-    def get_decoys_ecifp_cached(self, decoy_f, distance_cutoff=6.0):
+    def get_decoys_ecif_cached(self, decoy_f, distance_cutoff=6.0):
         """
-        get the fingerprint-like array (ECIFP) for a protein-decoy pair, with cached protein
+        get the fingerprint-like array (ECIF) for a protein-decoy pair, with cached protein
         :param decoy_f: decoys file in mol2 format
         :param distance_cutoff:
         :return:
@@ -482,7 +481,7 @@ class ECIF:
         ret = []
         pairs_list = self._get_pl_pairs_with_decoys_cached(decoy_f, distance_cutoff)
         for Pairs in pairs_list:
-            ret.append([list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl])
+            ret.append([list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl])
         return ret
 
     def get_possible_pl(self):
@@ -493,27 +492,28 @@ class ECIF:
         load protein/ligand tester
         :return:
         """
-        protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
-        prot_table = self._load_protein(protein)
-        old_prot_table = self._load_protein_old(protein)
-        print(self._load_protein(protein))
-        # ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
-        # lig_table = self._load_ligand(ligand)
-        # old_lig_table = self._load_ligand_old(ligand)
-        # print(self._load_ligand(ligand))
+        # protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
+        # prot_table = self._load_protein(protein)
+        # old_prot_table = self._load_protein_old(protein)
+        # print(self._load_protein(protein))
+        ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
+        lig_table = self._load_ligand(ligand)
+        old_lig_table = self._load_ligand_old(ligand)
+        print(self._load_ligand(ligand))
         # print(self._load_ligand_old(ligand))
 
-    def testECIFP(self):
+    def testECIF(self):
         """
-        ECIFP tester
+        ECIF tester
         :return:
         """
         protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
         ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
-        ecifp = self.get_ecifp(protein, ligand, 6.0)
-        print(ecifp.count(0)/len(ecifp))
+        ecif = self.get_ecif(protein, ligand, 6.0)
+        print(len(ecif))
+        print(ecif.count(0)/len(ecif))
 
 
 if __name__ == '__main__':
-    helper = ECIFP()
-    helper.testECIFP()
+    helper = ECIF()
+    helper.testECIF()

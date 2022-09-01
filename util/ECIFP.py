@@ -394,7 +394,7 @@ class ECIFP:
 
     def cache_protein(self, f_prot):
         """
-        In scenario where a single protein is frequently used, cache it first to MEIF helper
+        In scenario where a single protein is frequently used, cache it first to ECIFP helper
         :param f_prot: protein file in PDB format
         :return:
         """

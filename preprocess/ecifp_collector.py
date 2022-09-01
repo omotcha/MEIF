@@ -118,7 +118,7 @@ class ECIFP_Collector:
             ecifp_writer.writerow([iname] + ecifp_list + ld_list + [ipk])
             return
 
-        print("\nCollecting MEIF data: \n")
+        print("\nCollecting ECIFP data: \n")
         # affinity data are sorted by tag {core|general|refined}
         aff_data = pd.read_csv(os.path.join(data_dir, "affinity_data.csv")).sort_values(by="tag", axis=0, ascending=True)
         # for functional testing

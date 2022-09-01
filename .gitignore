@@ -4,3 +4,4 @@
 /models/
 /train/AutogluonModels/
 /model_test/
+/data/affinity_data_2016.csv
