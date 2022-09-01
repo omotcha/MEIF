@@ -34,5 +34,27 @@ def testGetPLPairWithDecoysCached():
         print(df)
 
 
+def testDecoysLD():
+    print("\n")
+    helper = ECIFP()
+    lid = "1a30"
+    f_decoy = os.path.join(casf_dir["decoys"], "{}_decoys.mol2".format(lid))
+    lds = helper.test_ligand_features_decoys(f_decoy)
+    same = True
+    # for i in range(len(lds)-1):
+    #     if lds[0] != lds[i+1]:
+    #         same = False
+    #         print("differs on ID: {}".format(i+1))
+    #
+    # print(same)
+
+    for i in range(len(lds[0])):
+        if lds[0][i] != lds[30][i]:
+            print(i)
+
+    print(lds[0])
+    print(lds[30])
+
+
 if __name__ == '__main__':
-    testGetPLPairWithDecoysCached()
+    testDecoysLD()

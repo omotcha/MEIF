@@ -32,6 +32,8 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ecifp(iname, itag, distance_cutoff):
+            if itag == "core":
+                return
             if itag == "general":
                 itag = "general-minus-refined"
             protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
@@ -67,6 +69,8 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ld(iname, itag):
+            if itag == "core":
+                return
             if itag == "general":
                 itag = "general-minus-refined"
             ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
@@ -98,6 +102,8 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ecifp(iname, itag, ipk, distance_cutoff):
+            if itag == "core":
+                return
             if itag == "general":
                 itag = "general-minus-refined"
             protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
@@ -136,4 +142,4 @@ class ECIFP_Collector:
 
 if __name__ == '__main__':
     ecifp_collector = ECIFP_Collector([6.0])
-    ecifp_collector.collect_ld("")
+    ecifp_collector.joint_collect("")

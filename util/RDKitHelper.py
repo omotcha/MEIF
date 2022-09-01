@@ -35,5 +35,6 @@ def Mol2MolSupplier(file=None, sanitize=True):
                 mol[-1] = mol[-1].rstrip()  # removes blank line at file end
                 block = ",".join(mol).replace(',', '')
                 m = Chem.MolFromMol2Block(block, sanitize=sanitize)
-            mols.append(m)
+            if m is not None:
+                mols.append(m)
     return mols

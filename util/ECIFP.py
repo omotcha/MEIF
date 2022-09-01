@@ -248,7 +248,7 @@ class ECIFP:
             print("WARNING: Protein contains unsupported atom types. Only supported atom-type pairs are counted.")
         return (df)
 
-    def get_pl_pairs_with_decoys_cached(self, decoy_f, distance_cutoff=6.0):
+    def _get_pl_pairs_with_decoys_cached(self, decoy_f, distance_cutoff=6.0):
         """
         for CASF docking power analysis
         This function returns the protein-decoys(multiple ligands) atom-type pairs for a given distance cutoff,
@@ -334,6 +334,36 @@ class ECIFP:
         return Pairs
 
     # callables
+    def get_pl_pairs_with_decoys_cached(self, decoy_f, distance_cutoff=6.0):
+        """
+        for CASF docking power analysis
+        This function returns the protein-decoys(multiple ligands) atom-type pairs for a given distance cutoff,
+             with cached protein
+        :param decoy_f: decoys file in mol2 format
+        :param distance_cutoff:
+        :return:
+        """
+        Target = self._cached_protein
+        Ligands = self._load_ligands(decoy_f)
+        ret = []
+        for Ligand in Ligands:
+            for i in ["X", "Y", "Z"]:
+                Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+                Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+            # Get all possible pairs
+            Pairs = list(product(Target["ECIFP_ATOM_TYPE"], Ligand["ECIFP_ATOM_TYPE"]))
+            Pairs = [x[0] + "-" + x[1] for x in Pairs]
+            Pairs = pd.DataFrame(Pairs, columns=["ECIFP_PAIR"])
+            Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+            Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+            Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+            Pairs = pd.concat([Pairs, Distances], axis=1)
+            Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+            ret.append(Pairs)
+        return ret
+
     def load_ligands(self, f_ligds):
         """
         for CASF docking power analysis
@@ -370,12 +400,36 @@ class ECIFP:
         """
         self._cached_protein = self._load_protein(f_prot)
 
+    def get_ligand_features_by_decoy(self, f_decoy):
+        """
+        In scenario where decoys of a ligand is used, the LD of these decoys are the same,
+        so ld should only be calculated for once
+        :param f_decoy: decoys file in mol2 format
+        :return:
+        """
+        ligand = Mol2MolSupplier(f_decoy)[0]
+        return self._desc_calculator.CalcDescriptors(ligand)
+
     def get_cached_protein(self):
         """
         get the cached protein
         :return:
         """
         return self._cached_protein
+
+    def test_ligand_features_decoys(self, decoy_f):
+        """
+        this is a test to find out whether decoys' RDKit features remain the same
+        tester: @ECIFPDockingPowerTest.testDecoysLD
+        result: they can be regarded as the same
+        :param decoy_f: decoys file in mol2 format
+        :return:
+        """
+        ligands = Mol2MolSupplier(decoy_f)
+        tups = []
+        for ligand in ligands:
+            tups.append(self._desc_calculator.CalcDescriptors(ligand))
+        return tups
 
     def get_ligand_features_by_file(self, ligand_f):
         """
@@ -399,13 +453,13 @@ class ECIFP:
         :return:
         """
         Pairs = self._get_pl_pairs(protein_f, ligand_f, distance_cutoff=distance_cutoff)
-        ECIFP = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
+        ecifp = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
         count = 0
-        for number in ECIFP:
+        for number in ecifp:
             if number != 0:
                 count += 1
 
-        return ECIFP
+        return ecifp
 
     def get_ecifp_cached(self, ligand_f, distance_cutoff=6.0):
         """
@@ -415,8 +469,21 @@ class ECIFP:
         :return:
         """
         Pairs = self._get_pl_pairs_cached(ligand_f, distance_cutoff=distance_cutoff)
-        ECIFP = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
-        return ECIFP
+        ecifp = [list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl]
+        return ecifp
+
+    def get_decoys_ecifp_cached(self, decoy_f, distance_cutoff=6.0):
+        """
+        get the fingerprint-like array (ECIFP) for a protein-decoy pair, with cached protein
+        :param decoy_f: decoys file in mol2 format
+        :param distance_cutoff:
+        :return:
+        """
+        ret = []
+        pairs_list = self._get_pl_pairs_with_decoys_cached(decoy_f, distance_cutoff)
+        for Pairs in pairs_list:
+            ret.append([list(Pairs["ECIFP_PAIR"]).count(x) for x in self._possible_pl])
+        return ret
 
     def get_possible_pl(self):
         return self._possible_pl
@@ -443,8 +510,8 @@ class ECIFP:
         """
         protein = os.path.join(tmp_dir, "4gmy_protein.pdb")
         ligand = os.path.join(tmp_dir, "4gmy_ligand.sdf")
-        ECIFP = self.get_ecifp(protein, ligand, 6.0)
-        print(ECIFP.count(0)/len(ECIFP))
+        ecifp = self.get_ecifp(protein, ligand, 6.0)
+        print(ecifp.count(0)/len(ecifp))
 
 
 if __name__ == '__main__':

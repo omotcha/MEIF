@@ -21,22 +21,27 @@
 
 #### 2. ECIFP(ECIF+escape labels+pdbbind2020)
 - Tabular data generation time: about 35min
-- Models: ag-20220825_085255
+- Models: ag-20220901_020745
 - Leaderboard
 ```angular2html
                   model  score_val        r2
-0   WeightedEnsemble_L2  -1.148280  0.627385
-1              CatBoost  -1.172127  0.614037
-2         LightGBMLarge  -1.164864  0.601690
-3            LightGBMXT  -1.186200  0.592328
-4              LightGBM  -1.188535  0.589309
-5       NeuralNetFastAI  -1.313653  0.587988
-6         ExtraTreesMSE  -1.216072  0.583365
-7               XGBoost  -1.195175  0.582069
-8       RandomForestMSE  -1.223338  0.572278
-9        KNeighborsDist  -1.457172  0.450282
-10       NeuralNetTorch  -1.398399  0.449546
-11       KNeighborsUnif  -1.497640  0.392478
+0   WeightedEnsemble_L2  -1.105918  0.666506
+1              LightGBM  -1.138972  0.650136
+2            LightGBMXT  -1.156025  0.647661
+3         LightGBMLarge  -1.125751  0.645971
+4              CatBoost  -1.148192  0.637515
+5               XGBoost  -1.166321  0.617023
+6       RandomForestMSE  -1.195796  0.611476
+7         ExtraTreesMSE  -1.174478  0.603487
+8       NeuralNetFastAI  -1.246362  0.599360
+9        NeuralNetTorch  -1.378830  0.499498
+10       KNeighborsDist  -1.405895  0.475636
+11       KNeighborsUnif  -1.475484  0.426464
+```
+- Predict Time Used(predict on core2016 #item: 285)
+```angular2html
+catboost: 52 seconds
+lightGBM: 73 seconds
 ```
 
 #### 3. ECIFP x CASF2016 Result compared with ECIF x CASF 2016 Result
@@ -47,9 +52,10 @@ Pearson correlation coefficient (R)
 
 Standard deviation in fitting (SD)
 ```angular2html
-             R      SD
-ECIF     0.863    1.10
-ECIFP    0.977    0.47
+                        R      SD
+ECIF                0.863    1.10
+ECIFP::catboost     0.808    1.28
+ECIFP::lightGBM     0.806    1.29
 ```
 
 - ranking power
@@ -61,7 +67,8 @@ The Kendall correlation coefficient (tau)
 The Predictive index (PI) 
 
 ```angular2html
-            SP      tau       PI
-ECIF     0.758    0.674    0.790
-ECIFP    0.961    0.933    0.971
+                        SP      tau       PI
+ECIF                 0.758    0.674    0.790
+ECIFP::catboost      0.661    0.575    0.685
+ECIFP::lightGBM      0.644    0.558    0.669
 ```

@@ -38,7 +38,7 @@ casf_dir = {
 }
 
 # models
-ecifp_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220825_085255", "models")
+ecifp_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220901_020745", "models")
 ecifp_catboost = os.path.join(ecifp_base, "CatBoost", "model.pkl")
 ecifp_lightgbm = os.path.join(ecifp_base, "LightGBM", "model.pkl")
 
