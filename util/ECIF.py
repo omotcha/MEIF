@@ -136,6 +136,34 @@ class ECIF:
             ret.append(df)
         return ret
 
+    def _load_ligands_sdf(self, f_ligds):
+        """
+        for CASF docking power analysis
+        This function takes a sdf for a list of decoys as input and returns a list of pandas DataFrame
+        :param f_ligds: decoys file in sdf format
+        :return: a list of pandas DataFrame
+        """
+        ret = []
+        ligands = Chem.SDMolSupplier(f_ligds)
+        for m in ligands:
+            ligd_atoms = []
+            for atom in m.GetAtoms():
+                symbol = atom.GetSymbol()
+                if symbol != "H":
+                    if symbol not in LIGAND_ELEMENTS:
+                        continue
+                    else:
+                        entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                    pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                    entry.append(float("{0:.4f}".format(pos.x)))
+                    entry.append(float("{0:.4f}".format(pos.y)))
+                    entry.append(float("{0:.4f}".format(pos.z)))
+                    ligd_atoms.append(entry)
+            df = pd.DataFrame(ligd_atoms)
+            df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
+            ret.append(df)
+        return ret
+
     def _load_ligand(self, f_ligd):
         """
         This function takes an SDF for a ligand as input and returns a pandas DataFrame
@@ -258,6 +286,36 @@ class ECIF:
         """
         Target = self._cached_protein
         Ligands = self._load_ligands(decoy_f)
+        ret = []
+        for Ligand in Ligands:
+            for i in ["X", "Y", "Z"]:
+                Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+                Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+            # Get all possible pairs
+            Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
+            Pairs = [x[0] + "-" + x[1] for x in Pairs]
+            Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
+            Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+            Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+            Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+            Pairs = pd.concat([Pairs, Distances], axis=1)
+            Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+            ret.append(Pairs)
+        return ret
+
+    def _get_pl_pairs_with_decoys_cached_sdf(self, decoy_f, distance_cutoff=6.0):
+        """
+        for CASF docking power analysis
+        This function returns the protein-decoys(multiple ligands) atom-type pairs for a given distance cutoff,
+             with cached protein
+        :param decoy_f: decoys file in sdf format
+        :param distance_cutoff:
+        :return:
+        """
+        Target = self._cached_protein
+        Ligands = self._load_ligands_sdf(decoy_f)
         ret = []
         for Ligand in Ligands:
             for i in ["X", "Y", "Z"]:
@@ -409,6 +467,16 @@ class ECIF:
         ligand = Mol2MolSupplier(f_decoy)[0]
         return self._desc_calculator.CalcDescriptors(ligand)
 
+    def get_ligand_features_by_decoy_sdf(self, f_decoy):
+        """
+        In scenario where decoys of a ligand is used, the LD of these decoys are the same,
+        so ld should only be calculated for once
+        :param f_decoy: decoys file in sdf format
+        :return:
+        """
+        ligand = Chem.SDMolSupplier(f_decoy)[0]
+        return self._desc_calculator.CalcDescriptors(ligand)
+
     def get_cached_protein(self):
         """
         get the cached protein
@@ -480,6 +548,19 @@ class ECIF:
         """
         ret = []
         pairs_list = self._get_pl_pairs_with_decoys_cached(decoy_f, distance_cutoff)
+        for Pairs in pairs_list:
+            ret.append([list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl])
+        return ret
+
+    def get_decoys_ecif_cached_sdf(self, decoy_f, distance_cutoff=6.0):
+        """
+        get the fingerprint-like array (ECIF) for a protein-decoy pair, with cached protein
+        :param decoy_f: decoys file in sdf format
+        :param distance_cutoff:
+        :return:
+        """
+        ret = []
+        pairs_list = self._get_pl_pairs_with_decoys_cached_sdf(decoy_f, distance_cutoff)
         for Pairs in pairs_list:
             ret.append([list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl])
         return ret

@@ -49,7 +49,8 @@ index_file_2016_dir = {
 casf_dir = {
     "base": "E:\\datasets\\casf2016\\CASF-2016",
     "core": "E:\\datasets\\casf2016\\CASF-2016\\coreset",
-    "decoys": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking"
+    "decoys": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking",
+    "decoys_sdf": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking_sdf"
 }
 
 # models
