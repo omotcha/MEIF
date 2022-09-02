@@ -53,7 +53,15 @@ casf_dir = {
 }
 
 # models
-ecifp_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220901_020745", "models")
+ecif_base = data_dir
+
+ecif_gbt = os.path.join(ecif_base, "ECIF6_LD_GBT.pkl")
+ecif_ag_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220902_034242", "models")
+ecif_catboost = os.path.join(ecif_ag_base, "CatBoost", "model.pkl")
+ecif_lightgbmxt = os.path.join(ecif_ag_base, "LightGBMXT", "model.pkl")
+
+ecifp_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220902_011835", "models")
+ecifp_gbt = os.path.join(ecif_base, "ECIFP_LD_GBT.pkl")
 ecifp_catboost = os.path.join(ecifp_base, "CatBoost", "model.pkl")
 ecifp_lightgbm = os.path.join(ecifp_base, "LightGBM", "model.pkl")
 

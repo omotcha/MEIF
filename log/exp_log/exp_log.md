@@ -21,30 +21,55 @@
 
 #### 2. ECIFP(ECIF+escape labels+pdbbind2020)
 - Tabular data generation time: about 35min
-- Models: ag-20220901_020745
+- Models: ag-20220902_011835
 - Leaderboard
 ```angular2html
                   model  score_val        r2
-0   WeightedEnsemble_L2  -1.105918  0.666506
-1              LightGBM  -1.138972  0.650136
-2            LightGBMXT  -1.156025  0.647661
-3         LightGBMLarge  -1.125751  0.645971
-4              CatBoost  -1.148192  0.637515
-5               XGBoost  -1.166321  0.617023
-6       RandomForestMSE  -1.195796  0.611476
-7         ExtraTreesMSE  -1.174478  0.603487
-8       NeuralNetFastAI  -1.246362  0.599360
-9        NeuralNetTorch  -1.378830  0.499498
-10       KNeighborsDist  -1.405895  0.475636
-11       KNeighborsUnif  -1.475484  0.426464
-```
-- Predict Time Used(predict on core2016 #item: 285)
-```angular2html
-catboost: 52 seconds
-lightGBM: 73 seconds
+0              LightGBM  -1.153731  0.640571
+1         LightGBMLarge  -1.134660  0.628050
+2              CatBoost  -1.160307  0.625722
+3               XGBoost  -1.169528  0.615295
+4            LightGBMXT  -1.153279  0.610849
+5   WeightedEnsemble_L2  -1.117438  0.599059
+6         ExtraTreesMSE  -1.182929  0.561037
+7       RandomForestMSE  -1.193287  0.552165
+8        NeuralNetTorch  -1.407867  0.473484
+9        KNeighborsDist  -1.371300  0.301969
+10       KNeighborsUnif  -1.434577  0.290977
+11      NeuralNetFastAI  -1.295202 -0.180418
 ```
 
-#### 3. ECIFP x CASF2016 Result compared with ECIF x CASF 2016 Result
+#### 3. ECIF
+- Tabular data generation time: about 14min
+- Models: ag-20220902_034242
+- Leaderboard
+```angular2html
+                  model  score_val        r2
+0            LightGBMXT  -1.186731  0.716315
+1              CatBoost  -1.179754  0.700723
+2              LightGBM  -1.179519  0.699779
+3   WeightedEnsemble_L2  -1.148319  0.694330
+4               XGBoost  -1.209543  0.675154
+5         LightGBMLarge  -1.166375  0.668868
+6         ExtraTreesMSE  -1.221901  0.612400
+7       NeuralNetFastAI  -1.273477  0.607187
+8       RandomForestMSE  -1.233089  0.601882
+9        NeuralNetTorch  -1.433347  0.537436
+10       KNeighborsDist  -1.494613  0.433635
+11       KNeighborsUnif  -1.562092  0.391596
+```
+
+- Predict Time Used(predict on core2016 #item: 285)
+```angular2html
+ECIF::GBT: 38 seconds
+ECIF::CatBoost: 46 seconds
+ECIF::LightGBMXT: 45 seconds
+ECIFP::GBT: 39 seconds
+ECIFP::CatBoost: 45 seconds
+ECIFP::LightGBM: 46 seconds
+```
+
+#### 4. ECIFP x CASF2016 Result compared with ECIF x CASF 2016 Result
 
 - scoring power
 
@@ -53,9 +78,12 @@ Pearson correlation coefficient (R)
 Standard deviation in fitting (SD)
 ```angular2html
                         R      SD
-ECIF                0.863    1.10
-ECIFP::catboost     0.808    1.28
-ECIFP::lightGBM     0.806    1.29
+ECIF::GBT           0.839    1.18
+ECIF::CatBoost      0.823    1.24
+ECIF::LightGBMXT    0.840    1.18
+ECIFP::GBT          0.828    1.22
+ECIFP::CatBoost     0.812    1.27
+ECIFP::LightGBM     0.826    1.23
 ```
 
 - ranking power
@@ -68,7 +96,10 @@ The Predictive index (PI)
 
 ```angular2html
                         SP      tau       PI
-ECIF                 0.758    0.674    0.790
-ECIFP::catboost      0.661    0.575    0.685
-ECIFP::lightGBM      0.644    0.558    0.669
+ECIF::GBT            0.711    0.625    0.732
+ECIF::CatBoost       0.674    0.565    0.706
+ECIF::LightGBMXT     0.691    0.586    0.728
+ECIFP::GBT           0.735    0.660    0.755
+ECIFP::CatBoost      0.684    0.596    0.705
+ECIFP::LightGBM      0.663    0.575    0.679
 ```

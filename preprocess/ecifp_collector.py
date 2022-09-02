@@ -32,8 +32,7 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ecifp(iname, itag, distance_cutoff):
-            if itag == "core":
-                return
+
             if itag == "general":
                 itag = "general-minus-refined"
             protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
@@ -41,7 +40,10 @@ class ECIFP_Collector:
             ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
                                                       ligand_file,
                                                       float(distance_cutoff))
-            ecifp_writer.writerow([iname] + ecifp_list)
+            if itag == "core":
+                ecifp_test_writer.writerow([iname] + ecifp_list)
+            else:
+                ecifp_train_writer.writerow([iname] + ecifp_list)
             return
 
         print("\nCollecting ECIFP data: \n")
@@ -51,15 +53,20 @@ class ECIFP_Collector:
         for d in self._distance_cutoffs:
             print("\n distance_cutoff: {}\n".format(d))
             if tag is None or tag == "":
-                f_ecifp = open(os.path.join(meif_data_dir, "ECIFP_{}.csv".format(d)), 'a', newline='')
+                f_ecifp_test = open(os.path.join(meif_data_dir, "ECIFP_test_{}.csv".format(d)), 'a', newline='')
+                f_ecifp_train = open(os.path.join(meif_data_dir, "ECIFP_train_{}.csv".format(d)), 'a', newline='')
             else:
-                f_ecifp = open(os.path.join(meif_data_dir, "ECIFP_{}_{}.csv".format(d, tag)), 'a', newline='')
+                f_ecifp_test = open(os.path.join(meif_data_dir, "ECIFP_test_{}_{}.csv".format(d, tag)), 'a', newline='')
+                f_ecifp_train = open(os.path.join(meif_data_dir, "ECIFP_train_{}_{}.csv".format(d, tag)), 'a', newline='')
             # write csv header
             ecifp_header = ["PDB"] + self._ecifp_helper.get_possible_pl()
-            ecifp_writer = csv.writer(f_ecifp)
-            ecifp_writer.writerow(ecifp_header)
+            ecifp_test_writer = csv.writer(f_ecifp_test)
+            ecifp_train_writer = csv.writer(f_ecifp_train)
+            ecifp_test_writer.writerow(ecifp_header)
+            ecifp_train_writer.writerow(ecifp_header)
             list(aff_data.apply(lambda x: calc_ecifp(x["name"], x["tag"], float(d)), axis=1))
-            f_ecifp.close()
+            f_ecifp_test.close()
+            f_ecifp_train.close()
         print("\n- Finished -\n")
 
     def collect_ld(self, tag):
@@ -69,14 +76,15 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ld(iname, itag):
-            if itag == "core":
-                return
             if itag == "general":
                 itag = "general-minus-refined"
             ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
             ret = self._ecifp_helper.get_ligand_features_by_file(ligand_file)
             if ret is not None:
-                ld_writer.writerow([iname] + list(ret))
+                if itag == "core":
+                    ld_test_writer.writerow([iname] + list(ret))
+                else:
+                    ld_train_writer.writerow([iname] + list(ret))
             return
 
         print("\nCollecting Ligand Descriptor data: \n")
@@ -84,15 +92,20 @@ class ECIFP_Collector:
         # for functional testing
         # aff_data = aff_data[0:50]
         if tag is None or tag == "":
-            f_ld = open(os.path.join(meif_data_dir, "LD.csv"), 'a', newline='')
+            f_ld_test = open(os.path.join(meif_data_dir, "LD_test.csv"), 'a', newline='')
+            f_ld_train = open(os.path.join(meif_data_dir, "LD_train.csv"), 'a', newline='')
         else:
-            f_ld = open(os.path.join(meif_data_dir, "LD_{}.csv".format(tag)), 'a', newline='')
+            f_ld_test = open(os.path.join(meif_data_dir, "LD_test_{}.csv".format(tag)), 'a', newline='')
+            f_ld_train = open(os.path.join(meif_data_dir, "LD_train_{}.csv".format(tag)), 'a', newline='')
         # write csv header
         ld_header = ["PDB"] + LIGAND_DESC
-        ld_writer = csv.writer(f_ld)
-        ld_writer.writerow(ld_header)
+        ld_test_writer = csv.writer(f_ld_test)
+        ld_train_writer = csv.writer(f_ld_train)
+        ld_test_writer.writerow(ld_header)
+        ld_train_writer.writerow(ld_header)
         list(aff_data.apply(lambda x: calc_ld(x["name"], x["tag"]), axis=1))
-        f_ld.close()
+        f_ld_test.close()
+        f_ld_train.close()
         print("\n- Finished -\n")
 
     def joint_collect(self, tag):
@@ -102,12 +115,11 @@ class ECIFP_Collector:
         :return:
         """
         def calc_ecifp(iname, itag, ipk, distance_cutoff):
-            if itag == "core":
-                return
             if itag == "general":
                 itag = "general-minus-refined"
             protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
             ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
+
             try:
                 ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
                                                           ligand_file,
@@ -115,7 +127,11 @@ class ECIFP_Collector:
                 ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
             except Exception:
                 return
-            ecifp_writer.writerow([iname] + ecifp_list + ld_list + [ipk])
+
+            if itag == "core":
+                ecifp_test_writer.writerow([iname] + ecifp_list + ld_list + [ipk])
+            else:
+                ecifp_train_writer.writerow([iname] + ecifp_list + ld_list + [ipk])
             return
 
         print("\nCollecting ECIFP data: \n")
@@ -124,19 +140,23 @@ class ECIFP_Collector:
         # for functional testing
         # aff_data = aff_data[0:50]
         ecifp_header = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
-        fp_len = len(ecifp_header)
         ecifp_header = ["PDB"] + ecifp_header + ["pk"]
         for d in self._distance_cutoffs:
             print("\n distance_cutoff: {}\n".format(d))
             if tag is None or tag == "":
-                f_ecifp = open(os.path.join(meif_data_dir, "ECIFP_{}.csv".format(d)), 'a', newline='')
+                f_ecifp_test = open(os.path.join(meif_data_dir, "ECIFP_test_{}.csv".format(d)), 'a', newline='')
+                f_ecifp_train = open(os.path.join(meif_data_dir, "ECIFP_train_{}.csv".format(d)), 'a', newline='')
             else:
-                f_ecifp = open(os.path.join(meif_data_dir, "ECIFP_{}_{}.csv".format(d, tag)), 'a', newline='')
+                f_ecifp_test = open(os.path.join(meif_data_dir, "ECIFP_test_{}_{}.csv".format(d, tag)), 'a', newline='')
+                f_ecifp_train = open(os.path.join(meif_data_dir, "ECIFP_train_{}_{}.csv".format(d, tag)), 'a', newline='')
             # write csv header
-            ecifp_writer = csv.writer(f_ecifp)
-            ecifp_writer.writerow(ecifp_header)
+            ecifp_test_writer = csv.writer(f_ecifp_test)
+            ecifp_train_writer = csv.writer(f_ecifp_train)
+            ecifp_test_writer.writerow(ecifp_header)
+            ecifp_train_writer.writerow(ecifp_header)
             aff_data.apply(lambda x: calc_ecifp(x["name"], x["tag"], x["pk"], float(d)), axis=1)
-            f_ecifp.close()
+            f_ecifp_test.close()
+            f_ecifp_train.close()
         print("\n- Finished -\n")
 
 

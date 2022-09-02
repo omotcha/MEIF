@@ -5,3 +5,7 @@
 /train/AutogluonModels/
 /model_test/
 /data/affinity_data_2016.csv
+/casf/result/
+/data/BindingData.csv
+/data/ECIF6_LD_GBT.pkl
+/data/ECIFP_LD_GBT.pkl

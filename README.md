@@ -19,7 +19,8 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
     ├── log                         //logs
         ├── exp_log                 //for experiments
     ├── predict                     //predictions
-        ├── ecifp_predict           //ECIFP predictions
+        ├── ecif_predict.py         //ECIF predictions
+        ├── ecifp_predict.py        //ECIFP predictions
     ├── preprocess
         ├── ecif_collector.py       //collect ECIF fingerprints of all protein-ligand pairs
         ├── ecifp_collector.py      //collect ECIFP fingerprints of all protein-ligand pairs
@@ -29,6 +30,7 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
     ├── train
         ├── AutogluonModels         //Autogluon saved models
         ├── train_with_ag.py        //train MEIF using autogluon
+        ├── train_with_sklearn.py   //train ECIF using sklearn
     ├── util
         ├── ECIF.py                 //ECIF helper class, only for reference and comparative experiments
         ├── ECIFP.py                //ECIFP helper class
