@@ -15,7 +15,6 @@ from tqdm import tqdm
 import time
 
 
-
 class ECIF_Predictor:
     _model = None
     _ecif_helper = None
@@ -42,7 +41,7 @@ class ECIF_Predictor:
         data_f = pd.DataFrame([data], columns=cols)
         return self._model.predict(data_f)[0]
 
-    def _predict_on_decoy_by_id(self, lid):
+    def _predict_on_decoy_by_id_mol2(self, lid):
         """
         for CASF docking power analysis
         :param lid: ligand/protein id
@@ -53,8 +52,8 @@ class ECIF_Predictor:
         f_dec = os.path.join(casf_dir["decoys"], "{}_decoys.mol2".format(lid))
 
         self._ecif_helper.cache_protein(f_pro)
-        ecifs = self._ecif_helper.get_decoys_ecif_cached(f_dec, float(6.0))
-        ld = self._ecif_helper.get_ligand_features_by_decoy(f_dec)
+        ecifs = self._ecif_helper.get_decoys_ecif_cached_mol2(f_dec, float(6.0))
+        ld = self._ecif_helper.get_ligand_features_by_decoy_mol2(f_dec)
         cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
         ret = []
         dec_names = get_decoy_names(f_dec)
@@ -193,8 +192,8 @@ class ECIF_Predictor:
         f_dec = os.path.join(casf_dir["decoys"], "{}_decoys.mol2".format(lid))
 
         self._ecif_helper.cache_protein(f_pro)
-        ecifs = self._ecif_helper.get_decoys_ecif_cached(f_dec, float(6.0))
-        ld = self._ecif_helper.get_ligand_features_by_decoy(f_dec)
+        ecifs = self._ecif_helper.get_decoys_ecif_cached_mol2(f_dec, float(6.0))
+        ld = self._ecif_helper.get_ligand_features_by_decoy_mol2(f_dec)
         cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
         ret = []
         dec_names = get_decoy_names(f_dec)
@@ -213,7 +212,7 @@ class ECIF_Predictor:
         result.to_csv(os.path.join(tmp_dir, "ecif_decoy_pred", "{}_score.dat".format(lid)), index=False)
         return
 
-    def predict_on_decoy(self, model):
+    def predict_on_decoy_mol2(self, model):
         """
         for CASF docking power analysis
         :param model:
@@ -226,7 +225,7 @@ class ECIF_Predictor:
         err_lids = []
         for lid in lids:
             try:
-                self._predict_on_decoy_by_id(lid)
+                self._predict_on_decoy_by_id_mol2(lid)
             except Exception:
                 err_lids.append(lid)
                 continue
@@ -259,10 +258,50 @@ class ECIF_Predictor:
         print('bad decoy ids:')
         print(err_lids)
 
+    def predict_on_single_decoy_file(self, f_dec, model):
+        """
+        do prediction on single decoy file, for those fail in either predict_on_decoy_mol2() or predict_on_decoy_sdf()
+        :param f_dec: decoy file, decoys in sdf/mol2 format
+        :param model:
+        :return:
+        """
+        if model is not None:
+            self.load_model(model)
+
+        lid = f_dec[-16:-12]
+        f_pro = os.path.join(casf_dir["core"], lid, "{}_protein.pdb".format(lid))
+        f_lig = os.path.join(casf_dir["core"], lid, "{}_ligand.sdf".format(lid))
+
+        self._ecif_helper.cache_protein(f_pro)
+        postfix = f_dec.split(".")[-1]
+        if postfix in {"sdf", "mol2"}:
+            ecifs = self._ecif_helper.__getattribute__("get_decoys_ecif_cached_" + postfix)(f_dec, float(6.0))
+            ld = self._ecif_helper.__getattribute__("get_ligand_features_by_decoy_" + postfix)(f_dec)
+        else:
+            return
+        cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
+        ret = []
+        if postfix == "sdf":
+            dec_names = get_decoy_names_sdf(f_dec)
+        else:
+            dec_names = get_decoy_names(f_dec)
+
+        for ecif in tqdm(ecifs):
+            data = ecif + list(ld)
+            data_f = pd.DataFrame([data], columns=cols)
+            ret.append(self._model.predict(data_f)[0])
+
+        result = pd.DataFrame({"#code": dec_names, "score": ret}, columns=["#code", "score"]) \
+            .sort_values(by="score", ascending=False)
+        result.loc[-1] = ["{}_ligand".format(lid), self._predict(f_pro, f_lig)]
+        result.to_csv(os.path.join(tmp_dir, "ecif_decoy_pred", "{}_score.dat".format(lid)), index=False)
+        return
+
 
 if __name__ == '__main__':
-    predictor = ECIF_Predictor(ecif_gbt)
+    predictor = ECIF_Predictor(ecif_catboost)
     # predictor.predict_on_core(None)
     predictor.predict_on_decoy_sdf(None)
+    predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
 
 

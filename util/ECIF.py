@@ -108,7 +108,7 @@ class ECIF:
 
         return ";".join(AtomType)
 
-    def _load_ligands(self, f_ligds):
+    def _load_ligands_mol2(self, f_ligds):
         """
         for CASF docking power analysis
         This function takes a mol2 for a list of decoys as input and returns a list of pandas DataFrame
@@ -275,7 +275,7 @@ class ECIF:
             print("WARNING: Protein contains unsupported atom types. Only supported atom-type pairs are counted.")
         return (df)
 
-    def _get_pl_pairs_with_decoys_cached(self, decoy_f, distance_cutoff=6.0):
+    def _get_pl_pairs_with_decoys_cached_mol2(self, decoy_f, distance_cutoff=6.0):
         """
         for CASF docking power analysis
         This function returns the protein-decoys(multiple ligands) atom-type pairs for a given distance cutoff,
@@ -285,7 +285,7 @@ class ECIF:
         :return:
         """
         Target = self._cached_protein
-        Ligands = self._load_ligands(decoy_f)
+        Ligands = self._load_ligands_mol2(decoy_f)
         ret = []
         for Ligand in Ligands:
             for i in ["X", "Y", "Z"]:
@@ -401,7 +401,7 @@ class ECIF:
         :return:
         """
         Target = self._cached_protein
-        Ligands = self._load_ligands(decoy_f)
+        Ligands = self._load_ligands_mol2(decoy_f)
         ret = []
         for Ligand in Ligands:
             for i in ["X", "Y", "Z"]:
@@ -457,7 +457,7 @@ class ECIF:
         """
         self._cached_protein = self._load_protein(f_prot)
 
-    def get_ligand_features_by_decoy(self, f_decoy):
+    def get_ligand_features_by_decoy_mol2(self, f_decoy):
         """
         In scenario where decoys of a ligand is used, the LD of these decoys are the same,
         so ld should only be calculated for once
@@ -539,7 +539,7 @@ class ECIF:
         ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
         return ecif
 
-    def get_decoys_ecif_cached(self, decoy_f, distance_cutoff=6.0):
+    def get_decoys_ecif_cached_mol2(self, decoy_f, distance_cutoff=6.0):
         """
         get the fingerprint-like array (ECIF) for a protein-decoy pair, with cached protein
         :param decoy_f: decoys file in mol2 format
@@ -547,7 +547,7 @@ class ECIF:
         :return:
         """
         ret = []
-        pairs_list = self._get_pl_pairs_with_decoys_cached(decoy_f, distance_cutoff)
+        pairs_list = self._get_pl_pairs_with_decoys_cached_mol2(decoy_f, distance_cutoff)
         for Pairs in pairs_list:
             ret.append([list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl])
         return ret

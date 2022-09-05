@@ -103,3 +103,31 @@ ECIFP::GBT           0.735    0.660    0.755
 ECIFP::CatBoost      0.684    0.596    0.705
 ECIFP::LightGBM      0.663    0.575    0.679
 ```
+
+- docking power
+
+number of Top 1/2/3 correct binding poses or success rate(#/SRN) N:1..3
+
+The Spearman correlation coefficient in rmsd range 0..N(SPN) N:2..10
+
+
+```angular2html
+                       SR1      SR2      SR3    |     SP2      SP3      SP4      SP5      SP6      SP7      SP8      SP9     SP10
+ECIF::GBT            0.814    0.853    0.877    |   0.222    0.230    0.236    0.246    0.256    0.265    0.281    0.302    0.318
+ECIF::CatBoost       0.747    0.821    0.853    |   0.202    0.192    0.196    0.191    0.196    0.203    0.215    0.239    0.255
+ECIF::LightGBMXT     0.691    0.586    0.728
+ECIFP::GBT           0.807    0.856    0.902    |   0.220    0.228    0.239    0.259    0.283    0.301    0.317    0.339    0.358
+ECIFP::CatBoost      0.684    0.596    0.705
+ECIFP::LightGBM      0.663    0.575    0.679
+```
+
+time used
+```angular2html
+                   Time(seconds)
+ECIF::GBT                   1895
+ECIF::CatBoost              2668
+ECIF::LightGBMXT            0.691
+ECIFP::GBT                  2022
+ECIFP::CatBoost             0.684
+ECIFP::LightGBM             0.663
+```

@@ -5,10 +5,11 @@ name: ecifp_predict.py
 do prediction with ECIFP models
 """
 import os
-from configs.config import model_test_dir, ecifp_gbt, ecifp_catboost, ecifp_lightgbm, casf_dir, tmp_dir
+from configs.config import model_test_dir, casf_dir, tmp_dir, dataset_2016_dir
+from configs.config import ecifp_gbt, ecifp_catboost, ecifp_lightgbm
 import pandas as pd
 from util.ECIFP import ECIFP, LIGAND_DESC
-from util.RDKitHelper import get_decoy_names
+from util.RDKitHelper import get_decoy_names, get_decoy_names_sdf
 import pickle
 from tqdm import tqdm
 import time
@@ -39,6 +40,63 @@ class ECIFP_Predictor:
         cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
         data_f = pd.DataFrame([data], columns=cols)
         return self._model.predict(data_f)[0]
+
+    def _predict_on_decoy_by_id_mol2(self, lid):
+        """
+        for CASF docking power analysis
+        :param lid: ligand/protein id
+        :return:
+        """
+        f_pro = os.path.join(casf_dir["core"], lid, "{}_protein.pdb".format(lid))
+        f_lig = os.path.join(casf_dir["core"], lid, "{}_ligand.sdf".format(lid))
+        f_dec = os.path.join(casf_dir["decoys"], "{}_decoys.mol2".format(lid))
+
+        self._ecifp_helper.cache_protein(f_pro)
+        ecifps = self._ecifp_helper.get_decoys_ecifp_cached_mol2(f_dec, float(6.0))
+        ld = self._ecifp_helper.get_ligand_features_by_decoy_mol2(f_dec)
+        cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
+        ret = []
+        dec_names = get_decoy_names(f_dec)
+
+        for ecif in tqdm(ecifps):
+            data = ecif + list(ld)
+            data_f = pd.DataFrame([data], columns=cols)
+            ret.append(self._model.predict(data_f)[0])
+
+        result = pd.DataFrame({"#code": dec_names, "score": ret}, columns=["#code", "score"]) \
+            .sort_values(by="score", ascending=False)
+        result.loc[-1] = ["{}_ligand".format(lid), self._predict(f_pro, f_lig)]
+        result.to_csv(os.path.join(tmp_dir, "ecifp_decoy_pred", "{}_score.dat".format(lid)), index=False)
+        return
+
+    def _predict_on_decoy_by_id_sdf(self, lid):
+        """
+        for CASF docking power analysis, decoys in sdf format
+        :param lid: ligand/protein id
+        :return:
+        """
+        f_pro = os.path.join(casf_dir["core"], lid, "{}_protein.pdb".format(lid))
+        f_lig = os.path.join(casf_dir["core"], lid, "{}_ligand.sdf".format(lid))
+        f_dec = os.path.join(casf_dir["decoys_sdf"], "{}_decoys.sdf".format(lid))
+
+        self._ecifp_helper.cache_protein(f_pro)
+        ecifps = self._ecifp_helper.get_decoys_ecifp_cached_sdf(f_dec, float(6.0))
+        ld = self._ecifp_helper.get_ligand_features_by_decoy_sdf(f_dec)
+        cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
+        ret = []
+
+        dec_names = get_decoy_names_sdf(f_dec)
+
+        for ecifp in tqdm(ecifps):
+            data = ecifp + list(ld)
+            data_f = pd.DataFrame([data], columns=cols)
+            ret.append(self._model.predict(data_f)[0])
+
+        result = pd.DataFrame({"#code": dec_names, "score": ret}, columns=["#code", "score"]) \
+            .sort_values(by="score", ascending=False)
+        result.loc[-1] = ["{}_ligand".format(lid), self._predict(f_pro, f_lig)]
+        result.to_csv(os.path.join(tmp_dir, "ecifp_decoy_pred", "{}_score.dat".format(lid)), index=False)
+        return
 
     # callables
     def load_model(self, model):
@@ -135,8 +193,8 @@ class ECIFP_Predictor:
         f_dec = os.path.join(casf_dir["decoys"], "{}_decoys.mol2".format(lid))
 
         self._ecifp_helper.cache_protein(f_pro)
-        ecifps = self._ecifp_helper.get_decoys_ecifp_cached(f_dec, float(6.0))
-        ld = self._ecifp_helper.get_ligand_features_by_decoy(f_dec)
+        ecifps = self._ecifp_helper.get_decoys_ecifp_cached_mol2(f_dec, float(6.0))
+        ld = self._ecifp_helper.get_ligand_features_by_decoy_mol2(f_dec)
         cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
         ret = []
         dec_names = get_decoy_names(f_dec)
@@ -155,9 +213,95 @@ class ECIFP_Predictor:
         result.to_csv(os.path.join(tmp_dir, "ecifp_decoy_pred", "{}_score.dat".format(lid)), index=False)
         return
 
+    def predict_on_decoy_mol2(self, model):
+        """
+        for CASF docking power analysis
+        :param model:
+        :return:
+        """
+        start = time.perf_counter()
+        if model is not None:
+            self.load_model(model)
+        lids = os.listdir(dataset_2016_dir["core"])
+        err_lids = []
+        for lid in lids:
+            try:
+                self._predict_on_decoy_by_id_mol2(lid)
+            except Exception:
+                err_lids.append(lid)
+                continue
+        end = time.perf_counter()
+        print('\n')
+        print('run time: {} seconds'.format(round(end - start)))
+        print('bad decoy ids:')
+        print(err_lids)
+
+    def predict_on_decoy_sdf(self, model):
+        """
+        for CASF docking power analysis
+        :param model:
+        :return:
+        """
+        start = time.perf_counter()
+        if model is not None:
+            self.load_model(model)
+        lids = os.listdir(dataset_2016_dir["core"])
+        err_lids = []
+        for lid in lids:
+            try:
+                self._predict_on_decoy_by_id_sdf(lid)
+            except Exception:
+                err_lids.append(lid)
+                continue
+        end = time.perf_counter()
+        print('\n')
+        print('run time: {} seconds'.format(round(end - start)))
+        print('bad decoy ids:')
+        print(err_lids)
+
+    def predict_on_single_decoy_file(self, f_dec, model):
+        """
+        do prediction on single decoy file, for those fail in either predict_on_decoy_mol2() or predict_on_decoy_sdf()
+        :param f_dec: decoy file, decoys in sdf/mol2 format
+        :param model:
+        :return:
+        """
+        if model is not None:
+            self.load_model(model)
+
+        lid = f_dec[-16:-12]
+        f_pro = os.path.join(casf_dir["core"], lid, "{}_protein.pdb".format(lid))
+        f_lig = os.path.join(casf_dir["core"], lid, "{}_ligand.sdf".format(lid))
+
+        self._ecifp_helper.cache_protein(f_pro)
+        postfix = f_dec.split(".")[-1]
+        if postfix in {"sdf", "mol2"}:
+            ecifps = self._ecifp_helper.__getattribute__("get_decoys_ecifp_cached_" + postfix)(f_dec, float(6.0))
+            ld = self._ecifp_helper.__getattribute__("get_ligand_features_by_decoy_" + postfix)(f_dec)
+        else:
+            return
+        cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
+        ret = []
+        if postfix == "sdf":
+            dec_names = get_decoy_names_sdf(f_dec)
+        else:
+            dec_names = get_decoy_names(f_dec)
+
+        for ecifp in tqdm(ecifps):
+            data = ecifp + list(ld)
+            data_f = pd.DataFrame([data], columns=cols)
+            ret.append(self._model.predict(data_f)[0])
+
+        result = pd.DataFrame({"#code": dec_names, "score": ret}, columns=["#code", "score"]) \
+            .sort_values(by="score", ascending=False)
+        result.loc[-1] = ["{}_ligand".format(lid), self._predict(f_pro, f_lig)]
+        result.to_csv(os.path.join(tmp_dir, "ecifp_decoy_pred", "{}_score.dat".format(lid)), index=False)
+        return
+
 
 if __name__ == '__main__':
-    predictor = ECIFP_Predictor(ecifp_gbt)
-    # predictor.predict_on_decoy_by_id("1a30", None)
-    predictor.predict_on_core(None)
+    predictor = ECIFP_Predictor(ecifp_catboost)
+    # predictor.predict_on_core(None)
+    predictor.predict_on_decoy_sdf(None)
+    # predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
 
