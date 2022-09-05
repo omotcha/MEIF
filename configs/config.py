@@ -17,6 +17,7 @@ data_dir = os.path.join(project_dir, "data")
 meif_data_dir = os.path.join(project_dir, "meif_data")
 test_dir = os.path.join(project_dir, "test")
 model_test_dir = os.path.join(project_dir, "model_test")
+log_dir = os.path.join(project_dir, "log")
 
 # dataset used
 dataset_version = 2020
@@ -50,7 +51,10 @@ casf_dir = {
     "base": "E:\\datasets\\casf2016\\CASF-2016",
     "core": "E:\\datasets\\casf2016\\CASF-2016\\coreset",
     "decoys": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking",
-    "decoys_sdf": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking_sdf"
+    "decoys_sdf": "E:\\datasets\\casf2016\\CASF-2016\\decoys_docking_sdf",
+    "target_info": "E:\\datasets\\casf2016\\CASF-2016\\power_screening\\TargetInfo.dat",
+    "decoys_screening": "E:\\datasets\\casf2016\\CASF-2016\\decoys_screening",
+    "decoys_screening_sdf": "E:\\datasets\\casf2016\\CASF-2016\\decoys_screening_sdf"
 }
 
 # models

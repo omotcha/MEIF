@@ -5,7 +5,7 @@ name: ecif_predict.py
 do prediction with ECIF models
 """
 import os
-from configs.config import model_test_dir, casf_dir, tmp_dir, dataset_2016_dir
+from configs.config import model_test_dir, casf_dir, tmp_dir, dataset_2016_dir, log_dir
 from configs.config import ecif_gbt, ecif_catboost, ecif_lightgbmxt
 import pandas as pd
 from util.ECIF import ECIF, LIGAND_DESC
@@ -13,6 +13,8 @@ from util.RDKitHelper import get_decoy_names, get_decoy_names_sdf
 import pickle
 from tqdm import tqdm
 import time
+import math
+import multiprocessing
 
 
 class ECIF_Predictor:
@@ -267,8 +269,8 @@ class ECIF_Predictor:
         """
         if model is not None:
             self.load_model(model)
-
-        lid = f_dec[-16:-12]
+        name = f_dec.split("\\")[-1]
+        lid = name[:4]
         f_pro = os.path.join(casf_dir["core"], lid, "{}_protein.pdb".format(lid))
         f_lig = os.path.join(casf_dir["core"], lid, "{}_ligand.sdf".format(lid))
 
@@ -297,11 +299,95 @@ class ECIF_Predictor:
         result.to_csv(os.path.join(tmp_dir, "ecif_decoy_pred", "{}_score.dat".format(lid)), index=False)
         return
 
+    def predict_on_target_decoy_sdf(self, f_tar, f_dec):
+        """
+        for CASF screening power analysis
+        :param f_tar: target file, in .pdb format
+        :param f_dec: decoy file, in .sdf format
+        :return:
+        """
+
+        self._ecif_helper.cache_protein(f_tar)
+        ecifs = self._ecif_helper.get_decoys_ecif_cached_sdf(f_dec, float(6.0))
+        ld = self._ecif_helper.get_ligand_features_by_decoy_sdf(f_dec)
+        cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
+        ret = []
+        dec_names = get_decoy_names_sdf(f_dec)
+
+        for ecif in tqdm(ecifs):
+            data = ecif + list(ld)
+            data_f = pd.DataFrame([data], columns=cols)
+            ret.append(self._model.predict(data_f)[0])
+
+        result = pd.DataFrame({"#code": dec_names, "score": ret}, columns=["#code", "score"]) \
+            .sort_values(by="score", ascending=False)
+        result.to_csv(os.path.join(tmp_dir,
+                                   "ecif_decoy_screening_pred",
+                                   "{}_{}_score.dat".format(f_tar.split("\\")[-1][:4], f_dec.split("_")[-1][:4])),
+                      index=False)
+        return
+
+
+def target_based_predict_worker(targets, model):
+    """
+
+    :param targets:
+    :param model:
+    :return:
+    """
+
+    for tid in targets:
+        err_ids = []
+        target_predictor = ECIF_Predictor(model)
+        f_pro = os.path.join(casf_dir["core"], tid, "{}_protein.pdb".format(tid))
+        f_decs_base = os.path.join(casf_dir["decoys_screening_sdf"], tid)
+        for f_dec in os.listdir(f_decs_base):
+            try:
+                target_predictor.predict_on_target_decoy_sdf(f_pro, os.path.join(f_decs_base, f_dec))
+            except Exception:
+                err_ids.append(f_dec)
+        if len(err_ids) > 0:
+            with open(os.path.join(log_dir, "screening", "{}.err".format(tid)), 'w') as f:
+                for err_id in err_ids:
+                    f.write("{}\n".format(err_id))
+
+
+def target_based_predict_modulator(n_workers=4, model=None):
+    """
+    for CASF screening power analysis, this function serves as a VS modulator
+    :param n_workers:
+    :param model:
+    :return:
+    """
+    def get_targets():
+        ret = []
+        with open(os.path.join(casf_dir["target_info"]), 'r') as f:
+            for line in f.readlines():
+                if not line.startswith("#"):
+                    ret.append(line.split(" ")[0])
+        return ret
+    if model is None:
+        model = ecif_gbt
+    targets = get_targets()
+    size = math.ceil(len(targets) / n_workers)
+    worker_tasks = [targets[i:i + size] for i in range(0, len(targets), size)]
+    start = time.perf_counter()
+    pool = multiprocessing.Pool(n_workers)
+    pool.starmap(target_based_predict_worker, zip(worker_tasks, [model] * n_workers))
+    end = time.perf_counter()
+    print('\n')
+    print('run time: {} seconds'.format(round(end - start)))
+
+
+def test():
+    targets = ["3ejr"]
+    target_based_predict_worker(targets, ecif_gbt)
+
 
 if __name__ == '__main__':
-    predictor = ECIF_Predictor(ecif_catboost)
+    predictor = ECIF_Predictor(ecif_lightgbmxt)
     # predictor.predict_on_core(None)
-    predictor.predict_on_decoy_sdf(None)
-    predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
-
-
+    # predictor.predict_on_decoy_sdf(None)
+    # predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
+    target_based_predict_modulator(4, ecif_gbt)
+    # test()

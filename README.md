@@ -18,6 +18,7 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
         ├── keys.csv                //keys for exchanging PDB Atom Type with ECIF(P) Atom Type
     ├── log                         //logs
         ├── exp_log                 //for experiments
+        ├── screening               //for CASF screening
     ├── predict                     //predictions
         ├── ecif_predict.py         //ECIF predictions
         ├── ecifp_predict.py        //ECIFP predictions
@@ -36,5 +37,5 @@ Meshed Element-Type Interaction Feature. Something like ECIF.
         ├── ECIFP.py                //ECIFP helper class
         ├── MEIF.py                 //MEIF helper class
         ├── RDKitHelper.py          //extend RDKit functionality
-        
+        ├── CASFScreeningHelper.py  //CASF screening analysis supporter
 ```
