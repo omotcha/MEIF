@@ -312,13 +312,13 @@ class ECIFP_Predictor:
         """
 
         self._ecifp_helper.cache_protein(f_tar)
-        ecifs = self._ecifp_helper.get_decoys_ecifp_cached_sdf(f_dec, float(6.0))
+        ecifps = self._ecifp_helper.get_decoys_ecifp_cached_sdf(f_dec, float(6.0))
         ld = self._ecifp_helper.get_ligand_features_by_decoy_sdf(f_dec)
         cols = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
         ret = []
         dec_names = get_decoy_names_sdf(f_dec)
 
-        for ecifp in tqdm(ecifs):
+        for ecifp in tqdm(ecifps):
             data = ecifp + list(ld)
             data_f = pd.DataFrame([data], columns=cols)
             ret.append(self._model.predict(data_f)[0])

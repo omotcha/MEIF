@@ -452,6 +452,7 @@ def target_based_predict_modulator(n_workers=4, model=None):
     :param model:
     :return:
     """
+
     def get_targets():
         ret = []
         with open(os.path.join(casf_dir["target_info"]), 'r') as f:
@@ -459,6 +460,7 @@ def target_based_predict_modulator(n_workers=4, model=None):
                 if not line.startswith("#"):
                     ret.append(line.split(" ")[0])
         return ret
+
     if model is None:
         model = ecif_gbt
     targets = get_targets()
@@ -479,6 +481,7 @@ def target_based_on_single_decoy_file(f_dec_postfix, pred):
     :param pred:
     :return:
     """
+
     def get_targets():
         ret = []
         with open(os.path.join(casf_dir["target_info"]), 'r') as f:
@@ -486,6 +489,7 @@ def target_based_on_single_decoy_file(f_dec_postfix, pred):
                 if not line.startswith("#"):
                     ret.append(line.split(" ")[0])
         return ret
+
     if pred is None:
         pred = ECIF_Predictor(ecif_gbt)
     targets = get_targets()
@@ -508,4 +512,4 @@ if __name__ == '__main__':
     # target_based_predict_modulator(4, ecif_gbt)
     # target_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
-    predictor.multi_ligd_pred_mol2("20220906", None)
+    predictor.multi_ligd_pred("20220906", None)

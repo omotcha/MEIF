@@ -74,7 +74,7 @@ class ECIF_Collector:
             if itag == "general":
                 itag = "general-minus-refined"
             ligand_file = os.path.join(dataset_2016_dir[itag], iname, "{}_ligand.sdf".format(iname))
-            ret = self._ecif_helper.get_ligand_features_by_file(ligand_file)
+            ret = self._ecif_helper.get_ligand_features_by_file_sdf(ligand_file)
             if ret is not None:
                 ld_writer.writerow([iname] + list(ret))
             return
@@ -112,7 +112,7 @@ class ECIF_Collector:
                 ecif_list = self._ecif_helper.get_ecif(protein_file,
                                                        ligand_file,
                                                        float(distance_cutoff))
-                ld_list = list(self._ecif_helper.get_ligand_features_by_file(ligand_file))
+                ld_list = list(self._ecif_helper.get_ligand_features_by_file_sdf(ligand_file))
             except Exception:
                 return
             ecif_writer.writerow([iname] + ecif_list + ld_list + [ipk])

@@ -116,7 +116,7 @@ class ECIF:
         :return: a list of pandas DataFrame
         """
         ret = []
-        ligands = Mol2MolSupplier(f_ligds)
+        ligands = Mol2MolSupplier(f_ligds)[0]
         for m in ligands:
             ligd_atoms = []
             for atom in m.GetAtoms():
@@ -172,6 +172,32 @@ class ECIF:
         :return: pandas DataFrame
         """
         m = Chem.MolFromMolFile(f_ligd, sanitize=False)
+        m.UpdatePropertyCache(strict=False)
+        ligd_atoms = []
+        for atom in m.GetAtoms():
+            symbol = atom.GetSymbol()
+            if symbol != "H":
+                if symbol not in LIGAND_ELEMENTS:
+                    continue
+                else:
+                    entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                entry.append(float("{0:.4f}".format(pos.x)))
+                entry.append(float("{0:.4f}".format(pos.y)))
+                entry.append(float("{0:.4f}".format(pos.z)))
+                ligd_atoms.append(entry)
+        df = pd.DataFrame(ligd_atoms)
+        df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
+        return df
+
+    def _load_ligand_mol2(self, f_ligd):
+        """
+        This function takes an SDF for a ligand as input and returns a pandas DataFrame
+        with its atom types labeled according to ECIF
+        :param f_ligd ligand file in mol2 format
+        :return: pandas DataFrame
+        """
+        m = Mol2MolSupplier(f_ligd, sanitize=True)
         m.UpdatePropertyCache(strict=False)
         ligd_atoms = []
         for atom in m.GetAtoms():
@@ -363,6 +389,34 @@ class ECIF:
         Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
         return Pairs
 
+    def _get_pl_pairs_mol2(self, protein_f, ligand_f, distance_cutoff=6.0):
+        """
+        This function returns the protein-ligand atom-type pairs for a given distance cutoff
+        :param protein_f: pdb file name with dir
+        :param ligand_f:  sdf file name with dir
+        :param distance_cutoff:
+        :return:
+        """
+
+        Target = self._load_protein(protein_f)
+        Ligand = self._load_ligand_mol2(ligand_f)
+
+        for i in ["X", "Y", "Z"]:
+            Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+            Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+        # Get all possible pairs
+        Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
+        Pairs = [x[0] + "-" + x[1] for x in Pairs]
+        Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
+        Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+        Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+        Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+        Pairs = pd.concat([Pairs, Distances], axis=1)
+        Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+        return Pairs
+
     def _get_pl_pairs_cached(self, ligand_f, distance_cutoff=6.0):
         """
         This function returns the protein-ligand atom-type pairs for a given distance cutoff, with cached protein
@@ -498,13 +552,26 @@ class ECIF:
             tups.append(self._desc_calculator.CalcDescriptors(ligand))
         return tups
 
-    def get_ligand_features_by_file(self, ligand_f):
+    def get_ligand_features_by_file_sdf(self, ligand_f):
         """
         calculate ligand descriptors using RDKit
         :param ligand_f: sdf file name with dir
         :return:
         """
         ligand = Chem.MolFromMolFile(ligand_f, sanitize=False)
+        if ligand is None:
+            return None
+        ligand.UpdatePropertyCache(strict=False)
+        Chem.GetSymmSSSR(ligand)
+        return self._desc_calculator.CalcDescriptors(ligand)
+
+    def get_ligand_features_by_file_mol2(self, ligand_f):
+        """
+        calculate ligand descriptors using RDKit
+        :param ligand_f: mol2 file name with dir
+        :return:
+        """
+        ligand = Chem.MolFromMol2File(ligand_f, sanitize=False)
         if ligand is None:
             return None
         ligand.UpdatePropertyCache(strict=False)
@@ -520,6 +587,23 @@ class ECIF:
         :return:
         """
         Pairs = self._get_pl_pairs(protein_f, ligand_f, distance_cutoff=distance_cutoff)
+        ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
+        count = 0
+        for number in ecif:
+            if number != 0:
+                count += 1
+
+        return ecif
+
+    def get_ecif_mol2(self, protein_f, ligand_f, distance_cutoff=6.0):
+        """
+        get the fingerprint-like array (ECIF) for a protein-ligand pair
+        :param protein_f: pdb file name with dir
+        :param ligand_f: sdf file name with dir
+        :param distance_cutoff:
+        :return:
+        """
+        Pairs = self._get_pl_pairs_mol2(protein_f, ligand_f, distance_cutoff=distance_cutoff)
         ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
         count = 0
         for number in ecif:
