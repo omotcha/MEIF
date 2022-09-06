@@ -131,3 +131,18 @@ ECIFP::GBT                  2022
 ECIFP::CatBoost             2880
 ECIFP::LightGBM             2568
 ```
+
+- screening power
+
+Average enrichment factor amongst Top 1%/5%/10% (EF1/5/10)
+
+Success rate amongst Top 1%/5%/10% (SR1/5/10)
+```angular2html
+                       EF1      EF5     EF10    |     SR1      SR5     SR10
+ECIF::GBT               -        -       -      |      -        -       -
+ECIF::CatBoost          -        -       -      |      -        -       -
+ECIF::LightGBMXT      1.36     1.77     1.37    |   0.053    0.193    0.281
+ECIFP::GBT              -        -       -      |      -        -       -
+ECIFP::CatBoost         -        -       -      |      -        -       -
+ECIFP::LightGBM         -        -       -      |      -        -       -
+```

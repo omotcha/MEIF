@@ -75,7 +75,7 @@ def Mol2MolSupplier_test(file=None, sanitize=True):
     return mols
 
 
-def get_decoy_names(file=None):
+def get_decoy_names_mol2(file=None):
     """
     get the decoy names from mol2 file with multiple decoys
     :param file: mol2 file

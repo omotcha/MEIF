@@ -6,13 +6,13 @@ RDKitHelper Tester
 """
 
 import os
-from util.RDKitHelper import Mol2MolSupplier, get_decoy_names
+from util.RDKitHelper import Mol2MolSupplier, get_decoy_names_mol2
 from rdkit import Chem
 from configs.config import casf_dir, tmp_dir
 
 
 def testGetDecoyNames():
-    names = get_decoy_names(os.path.join(casf_dir["decoys"], "1bzc_decoys.mol2"))
+    names = get_decoy_names_mol2(os.path.join(casf_dir["decoys"], "1bzc_decoys.mol2"))
     print(names)
 
 

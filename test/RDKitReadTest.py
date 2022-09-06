@@ -8,7 +8,7 @@ import os
 
 from rdkit import Chem
 from configs.config import dataset_2016_dir, casf_dir
-from util.RDKitHelper import Mol2MolSupplier_test, get_decoy_names
+from util.RDKitHelper import Mol2MolSupplier_test, get_decoy_names_mol2
 
 block_good = """
 @<TRIPOS>MOLECULE
@@ -203,7 +203,7 @@ def testReadFromMol2():
 
 def testBadNum(f):
     mols = Mol2MolSupplier_test(f, sanitize=True)
-    names = get_decoy_names(f)
+    names = get_decoy_names_mol2(f)
     print("{}: {} can be identified from {} decoys".format(f[-16:-12], len(mols), len(names)))
 
 

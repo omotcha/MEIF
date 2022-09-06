@@ -5,7 +5,7 @@ name: CASFScreeningHelper.py
 CASF screening analysis supporter
 """
 import os
-from configs.config import casf_dir
+from configs.config import casf_dir, tmp_dir
 import math
 import multiprocessing
 import time
@@ -26,8 +26,8 @@ def target_based_data_collector_worker(targets, d_input, d_output):
             if f.startswith(tid):
                 target_dfs.append(pd.read_csv(os.path.join(d_input, f)))
         df = pd.concat(target_dfs, ignore_index=True)
-        df.to_csv(os.path.join(d_output, "{}_score.dat".format(tid)))
-
+        df.rename(columns={"#code": "#code_ligand_num"}, inplace=True)
+        df.to_csv(os.path.join(d_output, "{}_score.dat".format(tid)), index=False)
 
 
 def target_based_data_collector_modulator(n_workers=4, d_input=None, d_output=None):
@@ -54,3 +54,9 @@ def target_based_data_collector_modulator(n_workers=4, d_input=None, d_output=No
     end = time.perf_counter()
     print('\n')
     print('run time: {} seconds'.format(round(end - start)))
+
+
+if __name__ == '__main__':
+    target_based_data_collector_modulator(4,
+                                          os.path.join(tmp_dir, "ecif_decoy_screening_pred"),
+                                          os.path.join(tmp_dir, "ecif_vs_output"))
