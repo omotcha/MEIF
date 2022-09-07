@@ -45,6 +45,7 @@ class ECIF_Predictor:
 
     def _predict_mol2(self, f_pro, f_lig):
         """
+        for test
         predict on protein-ligand pairs not in pdbbind dataset
         :param f_pro: protein file, .pdb
         :param f_lig: ligand file, mol2
@@ -169,53 +170,6 @@ class ECIF_Predictor:
         print('\n')
         print('run time: {} seconds'.format(round(end - start)))
 
-    def multi_ligd_pred_mol2(self, test_name, model):
-        """
-        for extra tests, do estimations on a list of proteins that are not belongs to PDBBind dataset;
-        and multiple choices of ligands are matched to one protein
-        Caution: file structure of subtest folder should be:
-        ├── {test_name}(folder)
-            ├── {protein_id}(folder)
-                ├── {protein_id}_protein.pdb
-                ├── ligs(folder)
-                    ├── {ligand_name}.sdf
-                    ├── {ligand_name}.sdf
-                    ├── ...
-            ├── {protein_id}(folder)
-                ├── {protein_id}_protein.pdb
-                ├── ligs(folder)
-                    ├── {ligand_name}.sdf
-                    ├── {ligand_name}.sdf
-                    ├── ...
-            ├── ...
-        :param test_name: subtest folder
-        :param model: model
-        :return:
-        """
-        print("\n")
-        ids = os.listdir(os.path.join(model_test_dir, test_name))
-        start = time.perf_counter()
-        if model is not None:
-            self.load_model(model)
-        for i in ids:
-            preds = []
-            lig_name = []
-            f_prot = os.path.join(model_test_dir, test_name, "{}\\{}_protein.pdb".format(i, i))
-            f_ligs = os.path.join(model_test_dir, test_name, "{}\\ligs".format(i))
-            for j in tqdm(os.listdir(f_ligs)):
-                f_lig = os.path.join(f_ligs, j)
-                pk = self._predict_mol2(f_prot, f_lig)
-                preds.append(pk)
-                lig_name.append(j[:-4])
-            df_protein_name = pd.DataFrame([i] * len(lig_name), columns=["protein"])
-            df_lig_name = pd.DataFrame(lig_name, columns=["ligand"])
-            df_prediction = pd.DataFrame(preds, columns=["prediction"])
-            result = df_protein_name.join(df_lig_name.join(df_prediction))
-            result.to_csv(os.path.join(model_test_dir, test_name, "{}\\{}_result.csv".format(i, i)))
-
-        end = time.perf_counter()
-        print('\n')
-        print('run time: {} seconds'.format(round(end - start)))
 
     def predict_on_core(self, model):
         """
@@ -501,11 +455,11 @@ def test():
 
 
 if __name__ == '__main__':
-    predictor = ECIF_Predictor(ecif_gbt)
+    predictor = ECIF_Predictor(ecif_lightgbmxt)
     # predictor.predict_on_core(None)
     # predictor.predict_on_decoy_sdf(None)
     # predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
-    # target_based_predict_modulator(4, ecif_gbt)
+    target_based_predict_modulator(6, ecif_lightgbmxt)
     # target_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
-    predictor.multi_ligd_pred_mol2("20220906", None)
+    # predictor.multi_ligd_pred("20220907", None)

@@ -116,7 +116,7 @@ class ECIF:
         :return: a list of pandas DataFrame
         """
         ret = []
-        ligands = Mol2MolSupplier(f_ligds)[0]
+        ligands = Mol2MolSupplier(f_ligds)
         for m in ligands:
             ligd_atoms = []
             for atom in m.GetAtoms():

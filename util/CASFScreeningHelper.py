@@ -58,5 +58,5 @@ def target_based_data_collector_modulator(n_workers=4, d_input=None, d_output=No
 
 if __name__ == '__main__':
     target_based_data_collector_modulator(4,
-                                          os.path.join(tmp_dir, "ecif_decoy_screening_pred"),
-                                          os.path.join(tmp_dir, "ecif_vs_output"))
+                                          os.path.join(tmp_dir, "ecifp_decoy_screening_pred"),
+                                          os.path.join(tmp_dir, "ecifp_vs_output"))

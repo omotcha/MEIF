@@ -440,11 +440,11 @@ def test():
 
 
 if __name__ == '__main__':
-    predictor = ECIFP_Predictor(ecifp_catboost)
+    predictor = ECIFP_Predictor(ecifp_gbt)
     # predictor.predict_on_core(None)
     # predictor.predict_on_decoy_sdf(None)
     # predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
-    target_based_predict_modulator(4, ecifp_catboost)
+    target_based_predict_modulator(6, ecifp_gbt)
     # target_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
 
