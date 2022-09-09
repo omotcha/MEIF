@@ -42,6 +42,25 @@ def train_ecif():
     pickle.dump(GBT, open(os.path.join(data_dir, "ECIF6_LD_GBT.pkl"), 'wb'))
 
 
+def train_ecif_wold():
+    ecif_test = pd.read_csv(os.path.join(meif_data_dir, "ECIF_test_6.0_wold.csv"))
+    ecif_train = pd.read_csv(os.path.join(meif_data_dir, "ECIF_train_6.0_wold.csv"))
+    x_test = ecif_test[list(ecif_test.columns)[1:-1]]
+    y_test = ecif_test['pk']
+    x_train = ecif_train[list(ecif_train.columns)[1:-1]]
+    y_train = ecif_train['pk']
+
+    GBT = GradientBoostingRegressor(random_state=1206, n_estimators=20000, max_features="sqrt", max_depth=8,
+                                    min_samples_split=3, learning_rate=0.005, loss="ls", subsample=0.7)
+    GBT.fit(x_train, y_train)
+
+    y_pred_GBT = GBT.predict(x_test)
+    print("Pearson correlation coefficient for GBT: ", pearsonr(y_test, y_pred_GBT)[0])
+    print("RMSE for GBT:", sqrt(mean_squared_error(y_test, y_pred_GBT)))
+
+    pickle.dump(GBT, open(os.path.join(data_dir, "ECIF_GBT.pkl"), 'wb'))
+
+
 def train_ecifp():
     ecifp_test = pd.read_csv(os.path.join(meif_data_dir, "ECIFP_test_6.0.csv"))
     ecifp_train = pd.read_csv(os.path.join(meif_data_dir, "ECIFP_train_6.0.csv"))
@@ -62,4 +81,4 @@ def train_ecifp():
 
 
 if __name__ == '__main__':
-    train_ecifp()
+    train_ecif_wold()

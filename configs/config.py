@@ -61,6 +61,7 @@ casf_dir = {
 ecif_base = data_dir
 
 ecif_gbt = os.path.join(ecif_base, "ECIF6_LD_GBT.pkl")
+ecif_wold = os.path.join(ecif_base, "ECIF_GBT.pkl")
 ecif_ag_base = os.path.join(project_dir, "train", "AutogluonModels", "ag-20220902_034242", "models")
 ecif_catboost = os.path.join(ecif_ag_base, "CatBoost", "model.pkl")
 ecif_lightgbmxt = os.path.join(ecif_ag_base, "LightGBMXT", "model.pkl")

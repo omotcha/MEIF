@@ -139,7 +139,58 @@ class ECIF_Collector:
             f_ecif.close()
         print("\n- Finished -\n")
 
+    def joint_collect_wold(self, tag='wold'):
+        """
+        jointly collect ecif(without ld) and ground true value for each affinity entity
+        :param tag: added a postfix to generated csv file name, remember not to add diffusing symbols like ':'
+        :return:
+        """
+        def calc_ecif(iname, itag, ipk, distance_cutoff):
+            if itag == "general":
+                itag = "general-minus-refined"
+            protein_file = os.path.join(dataset_2016_dir[itag], iname, "{}_protein.pdb".format(iname))
+            ligand_file = os.path.join(dataset_2016_dir[itag], iname, "{}_ligand.sdf".format(iname))
+
+            try:
+                ecif_list = self._ecif_helper.get_ecif(protein_file,
+                                                       ligand_file,
+                                                       float(distance_cutoff))
+            except Exception:
+                return
+
+            if itag == "core":
+                ecif_test_writer.writerow([iname] + ecif_list + [ipk])
+            else:
+                ecif_train_writer.writerow([iname] + ecif_list + [ipk])
+            return
+
+        print("\nCollecting ECIF data: \n")
+        # affinity data are sorted by tag {core|general|refined}
+        aff_data = pd.read_csv(os.path.join(data_dir, "affinity_data_2016.csv"))\
+            .sort_values(by="tag", axis=0, ascending=True)
+        # for functional testing
+        # aff_data = aff_data[0:50]
+        ecif_header = self._ecif_helper.get_possible_pl()
+        ecif_header = ["PDB"] + ecif_header + ["pk"]
+        for d in self._distance_cutoffs:
+            print("\n distance_cutoff: {}\n".format(d))
+            if tag is None or tag == "":
+                f_ecif_test = open(os.path.join(meif_data_dir, "ECIF_test_{}.csv".format(d)), 'a', newline='')
+                f_ecif_train = open(os.path.join(meif_data_dir, "ECIF_train_{}.csv".format(d)), 'a', newline='')
+            else:
+                f_ecif_test = open(os.path.join(meif_data_dir, "ECIF_test_{}_{}.csv".format(d, tag)), 'a', newline='')
+                f_ecif_train = open(os.path.join(meif_data_dir, "ECIF_train_{}_{}.csv".format(d, tag)), 'a', newline='')
+            # write csv header
+            ecif_test_writer = csv.writer(f_ecif_test)
+            ecif_train_writer = csv.writer(f_ecif_train)
+            ecif_test_writer.writerow(ecif_header)
+            ecif_train_writer.writerow(ecif_header)
+            aff_data.apply(lambda x: calc_ecif(x["name"], x["tag"], x["pk"], float(d)), axis=1)
+            f_ecif_test.close()
+            f_ecif_train.close()
+        print("\n- Finished -\n")
+
 
 if __name__ == '__main__':
-    ecifp_collector = ECIF_Collector([6.0])
-    ecifp_collector.joint_collect("")
+    ecif_collector = ECIF_Collector([6.0])
+    ecif_collector.joint_collect_wold('wold')

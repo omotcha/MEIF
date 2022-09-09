@@ -146,6 +146,7 @@ class ECIF:
         ret = []
         ligands = Chem.SDMolSupplier(f_ligds)
         for m in ligands:
+            # print(m.GetProp('_Name'))
             ligd_atoms = []
             for atom in m.GetAtoms():
                 symbol = atom.GetSymbol()
@@ -559,19 +560,6 @@ class ECIF:
         :return:
         """
         ligand = Chem.MolFromMolFile(ligand_f, sanitize=False)
-        if ligand is None:
-            return None
-        ligand.UpdatePropertyCache(strict=False)
-        Chem.GetSymmSSSR(ligand)
-        return self._desc_calculator.CalcDescriptors(ligand)
-
-    def get_ligand_features_by_file_mol2(self, ligand_f):
-        """
-        calculate ligand descriptors using RDKit
-        :param ligand_f: mol2 file name with dir
-        :return:
-        """
-        ligand = Chem.MolFromMol2File(ligand_f, sanitize=False)
         if ligand is None:
             return None
         ligand.UpdatePropertyCache(strict=False)
