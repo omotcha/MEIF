@@ -810,5 +810,6 @@ if __name__ == '__main__':
     # target_based_predict_modulator(6, ecif_catboost)
     target_wold_based_predict_modulator(6, ecif_wold)
     # target_based_on_single_decoy_file("4mme.mol2", predictor)
+    # target_wold_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
     # predictor.multi_ligd_pred("20220907", None)

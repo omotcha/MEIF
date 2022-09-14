@@ -11,3 +11,5 @@
 /data/ECIFP_LD_GBT.pkl
 /log/screening/
 /data/ECIF_GBT.pkl
+/remote_scripts/
+/data/aug_affinity_data.csv

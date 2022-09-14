@@ -193,12 +193,12 @@ class ECIF:
 
     def _load_ligand_mol2(self, f_ligd):
         """
-        This function takes an SDF for a ligand as input and returns a pandas DataFrame
+        This function takes a mol2 for a ligand as input and returns a pandas DataFrame
         with its atom types labeled according to ECIF
         :param f_ligd ligand file in mol2 format
         :return: pandas DataFrame
         """
-        m = Mol2MolSupplier(f_ligd, sanitize=True)
+        m = Chem.MolFromMol2File(f_ligd)
         m.UpdatePropertyCache(strict=False)
         ligd_atoms = []
         for atom in m.GetAtoms():
@@ -560,6 +560,19 @@ class ECIF:
         :return:
         """
         ligand = Chem.MolFromMolFile(ligand_f, sanitize=False)
+        if ligand is None:
+            return None
+        ligand.UpdatePropertyCache(strict=False)
+        Chem.GetSymmSSSR(ligand)
+        return self._desc_calculator.CalcDescriptors(ligand)
+
+    def get_ligand_features_by_file_mol2(self, ligand_f):
+        """
+        calculate ligand descriptors using RDKit
+        :param ligand_f: mol2 file name with dir
+        :return:
+        """
+        ligand = Chem.MolFromMol2File(ligand_f, sanitize=False)
         if ligand is None:
             return None
         ligand.UpdatePropertyCache(strict=False)

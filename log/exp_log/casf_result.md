@@ -28,7 +28,7 @@ The Predictive index (PI)
                         SP      tau       PI
 ECIF::GBT            0.711    0.625    0.732
 ECIF::CatBoost       0.674    0.565    0.706
-ECIF::LightGBMXT     0.691    0.586    0.728
+ECIF::LightGBMXT     0.691    0.586    20.728
 ECIFP::GBT           0.735    0.660    0.755
 ECIFP::CatBoost      0.684    0.596    0.705
 ECIFP::LightGBM      0.663    0.575    0.679
@@ -80,4 +80,5 @@ ECIF::LightGBMXT      0.91     1.45     1.40    |   0.053    0.228    0.316    |
 ECIFP::GBT            2.12     1.30     1.38    |   0.053    0.175    0.281    |   0.056    0.119    0.221
 ECIFP::CatBoost       1.46     1.29     1.45    |   0.035    0.140    0.298    |   0.046    0.123    0.189
 ECIFP::LightGBM       2.43     1.48     1.34    |   0.035    0.140    0.211    |   0.035    0.098    0.172
+ECIF_WOLD::GBT        1.95     1.43     1.44    |   0.053    0.158    0.263    |   0.063    0.158    0.253
 ```

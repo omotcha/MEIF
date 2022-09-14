@@ -57,6 +57,16 @@ casf_dir = {
     "decoys_screening_sdf": "E:\\datasets\\casf2016\\CASF-2016\\decoys_screening_sdf"
 }
 
+data_aug_dir = {
+    "base": "E:\\datasets\\data_aug",
+    "proteins": "E:\\datasets\\data_aug\\docking_set_pro_pdb",
+    "ligands": "E:\\datasets\\data_aug\\docking_set_pdb",
+    "label": "E:\\datasets\\data_aug\\labeled_kikd_data.csv"
+}
+
+# affinity data file used
+aff_data_file = os.path.join(data_dir, "aug_affinity_data.csv")
+
 # models
 ecif_base = data_dir
 
