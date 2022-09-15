@@ -7,7 +7,7 @@ collect ECIF fingerprints of all protein-ligand pairs
 import os.path
 
 import pandas as pd
-from configs.config import data_dir, meif_data_dir, dataset_2016_dir, aff_data_file, data_aug_dir
+from configs.config import data_dir, meif_data_dir, dataset_2016_dir, aff_data_file, data_aug_dir, _read_ligand_by_mol2
 from util.ECIF import ECIF, LIGAND_DESC
 import csv
 
@@ -110,14 +110,26 @@ class ECIF_Collector:
                 target = sp[0]
                 lig = sp[1]
                 protein_file = os.path.join(data_aug_dir["proteins"], "{}.pdb".format(target))
-                ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.mol2".format(lig))
-                try:
-                    ecif_list = self._ecif_helper.get_ecif_mol2(protein_file,
-                                                                ligand_file,
-                                                                float(distance_cutoff))
-                    ld_list = list(self._ecif_helper.get_ligand_features_by_file_mol2(ligand_file))
-                except Exception:
-                    return
+                # read by mol2
+                if _read_ligand_by_mol2:
+                    ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.mol2".format(lig))
+                    try:
+                        ecif_list = self._ecif_helper.get_ecif_mol2(protein_file,
+                                                                    ligand_file,
+                                                                    float(distance_cutoff))
+                        ld_list = list(self._ecif_helper.get_ligand_features_by_file_mol2(ligand_file))
+                    except Exception:
+                        return
+                else:
+                    ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.sdf".format(lig))
+                    try:
+                        ecif_list = self._ecif_helper.get_ecif(protein_file,
+                                                               ligand_file,
+                                                               float(distance_cutoff))
+                        ld_list = list(self._ecif_helper.get_ligand_features_by_file_sdf(ligand_file))
+                    except Exception:
+                        return
+
             else:
                 protein_file = os.path.join(dataset_2016_dir[itag], iname, "{}_protein.pdb".format(iname))
                 ligand_file = os.path.join(dataset_2016_dir[itag], iname, "{}_ligand.sdf".format(iname))

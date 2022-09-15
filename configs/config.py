@@ -81,6 +81,12 @@ ecifp_gbt = os.path.join(ecif_base, "ECIFP_LD_GBT.pkl")
 ecifp_catboost = os.path.join(ecifp_base, "CatBoost", "model.pkl")
 ecifp_lightgbm = os.path.join(ecifp_base, "LightGBM", "model.pkl")
 
+ecif_aug_gbt = os.path.join(ecif_base, "ECIF_AUG_6_LD_GBT.pkl")
+
+
+# more experimental options
+_read_ligand_by_mol2 = False
+
 
 if __name__ == '__main__':
     print(project_dir)

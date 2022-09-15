@@ -198,7 +198,7 @@ class ECIF:
         :param f_ligd ligand file in mol2 format
         :return: pandas DataFrame
         """
-        m = Chem.MolFromMol2File(f_ligd)
+        m = Chem.MolFromMol2File(f_ligd, sanitize=False)
         m.UpdatePropertyCache(strict=False)
         ligd_atoms = []
         for atom in m.GetAtoms():
