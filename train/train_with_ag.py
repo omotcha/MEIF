@@ -259,7 +259,7 @@ class ECIF_Trainer:
                                    score_func=sklearn.metrics.r2_score,
                                    optimum=1,
                                    greater_is_better=True)
-        predictor = TabularPredictor(label='pK',
+        predictor = TabularPredictor(label='pk',
                                      eval_metric='root_mean_squared_error').fit(train_data=train_x.join(train_y))
         print("\n - finished -\n")
         leaderboard = predictor.leaderboard(test_x.join(test_y), extra_metrics=[ag_r2_scorer], silent=True)
@@ -267,5 +267,5 @@ class ECIF_Trainer:
 
 
 if __name__ == '__main__':
-    trainer = ECIF_Trainer(distance_cutoff=6.0, splitted=False, using_binding_data=True, tag="")
+    trainer = ECIF_Trainer(distance_cutoff=6.0, splitted=True, using_binding_data=False, tag="AUG")
     trainer.train()

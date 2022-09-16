@@ -59,6 +59,30 @@
 11       KNeighborsUnif  -1.562092  0.391596
 ```
 
+#### 4. ECIF AUG
+- GBT
+```angular2html
+Pearson correlation coefficient for GBT:  0.8379730624687073
+RMSE for GBT: 1.2764862385011655
+```
+- Models: ag-20220902_034242
+- Leaderboard
+```angular2html
+                  model  score_val        r2
+0            LightGBMXT  -1.186731  0.716315
+1              CatBoost  -1.179754  0.700723
+2              LightGBM  -1.179519  0.699779
+3   WeightedEnsemble_L2  -1.148319  0.694330
+4               XGBoost  -1.209543  0.675154
+5         LightGBMLarge  -1.166375  0.668868
+6         ExtraTreesMSE  -1.221901  0.612400
+7       NeuralNetFastAI  -1.273477  0.607187
+8       RandomForestMSE  -1.233089  0.601882
+9        NeuralNetTorch  -1.433347  0.537436
+10       KNeighborsDist  -1.494613  0.433635
+11       KNeighborsUnif  -1.562092  0.391596
+```
+
 - Predict Time Used(predict on core2016 #item: 285)
 ```angular2html
 ECIF::GBT: 38 seconds
