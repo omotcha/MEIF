@@ -7,7 +7,7 @@ collect ECIF fingerprints of all protein-ligand pairs
 import os.path
 
 import pandas as pd
-from configs.config import data_dir, meif_data_dir, dataset_2016_dir, aff_data_file, data_aug_dir, _read_ligand_by_mol2
+from configs.config import data_dir, meif_data_dir, dataset_2016_dir, aff_data_file, data_aug_dir, read_ligand_by_mol2
 from util.ECIF import ECIF, LIGAND_DESC
 import csv
 
@@ -111,7 +111,7 @@ class ECIF_Collector:
                 lig = sp[1]
                 protein_file = os.path.join(data_aug_dir["proteins"], "{}.pdb".format(target))
                 # read by mol2
-                if _read_ligand_by_mol2:
+                if read_ligand_by_mol2:
                     ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.mol2".format(lig))
                     try:
                         ecif_list = self._ecif_helper.get_ecif_mol2(protein_file,

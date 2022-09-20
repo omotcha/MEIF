@@ -6,7 +6,7 @@ do prediction with ECIF models
 """
 import os
 from configs.config import model_test_dir, casf_dir, tmp_dir, dataset_2016_dir, log_dir
-from configs.config import ecif_gbt, ecif_catboost, ecif_lightgbmxt, ecif_wold
+from configs.config import ecif_gbt, ecif_catboost, ecif_lightgbmxt, ecif_wold, ecif_aug_gbt, ecif_aug_lightgbml
 import pandas as pd
 from util.ECIF import ECIF, LIGAND_DESC
 from util.RDKitHelper import get_decoy_names_mol2, get_decoy_names_sdf
@@ -800,16 +800,17 @@ def test():
 
 
 if __name__ == '__main__':
-    predictor = ECIF_Predictor(ecif_wold)
+    predictor = ECIF_Predictor(ecif_aug_lightgbml)
     # predictor.predict_on_core(None)
     # predictor.predict_wold_on_core(None)
     # predictor.predict_on_decoy_sdf(None)
     # predictor.predict_wold_on_decoy_sdf(None)
     # predictor.predict_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
     # predictor.predict_wold_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
-    # target_based_predict_modulator(6, ecif_catboost)
-    target_wold_based_predict_modulator(6, ecif_wold)
-    # target_based_on_single_decoy_file("4mme.mol2", predictor)
+    # target_based_predict_modulator(6, ecif_aug_lightgbml)
+    # target_wold_based_predict_modulator(6, ecif_wold)
+    target_based_on_single_decoy_file("4mme.mol2", predictor)
     # target_wold_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
     # predictor.multi_ligd_pred("20220907", None)
+

@@ -7,7 +7,7 @@ collect ECIFP fingerprints of all protein-ligand pairs
 import os.path
 
 import pandas as pd
-from configs.config import data_dir, meif_data_dir, dataset_dir
+from configs.config import data_dir, meif_data_dir, dataset_dir, data_aug_dir, read_ligand_by_mol2, aff_data_file
 from util.ECIFP import ECIFP, LIGAND_DESC
 import csv
 
@@ -117,16 +117,41 @@ class ECIFP_Collector:
         def calc_ecifp(iname, itag, ipk, distance_cutoff):
             if itag == "general":
                 itag = "general-minus-refined"
-            protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
-            ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
 
-            try:
-                ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
-                                                          ligand_file,
-                                                          float(distance_cutoff))
-                ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
-            except Exception:
-                return
+            if itag == "aug":
+                sp = iname.split("_")
+                target = sp[0]
+                lig = sp[1]
+                protein_file = os.path.join(data_aug_dir["proteins"], "{}.pdb".format(target))
+                # read by mol2
+                if read_ligand_by_mol2:
+                    ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.mol2".format(lig))
+                    try:
+                        ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
+                                                                  ligand_file,
+                                                                  float(distance_cutoff))
+                        ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
+                    except Exception:
+                        return
+                else:
+                    ligand_file = os.path.join(data_aug_dir["ligands"], target, "{}_ledock001.sdf".format(lig))
+                    try:
+                        ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
+                                                                  ligand_file,
+                                                                  float(distance_cutoff))
+                        ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
+                    except Exception:
+                        return
+            else:
+                protein_file = os.path.join(dataset_dir[itag], iname, "{}_protein.pdb".format(iname))
+                ligand_file = os.path.join(dataset_dir[itag], iname, "{}_ligand.sdf".format(iname))
+                try:
+                    ecifp_list = self._ecifp_helper.get_ecifp(protein_file,
+                                                              ligand_file,
+                                                              float(distance_cutoff))
+                    ld_list = list(self._ecifp_helper.get_ligand_features_by_file(ligand_file))
+                except Exception:
+                    return
 
             if itag == "core":
                 ecifp_test_writer.writerow([iname] + ecifp_list + ld_list + [ipk])
@@ -136,7 +161,7 @@ class ECIFP_Collector:
 
         print("\nCollecting ECIFP data: \n")
         # affinity data are sorted by tag {core|general|refined}
-        aff_data = pd.read_csv(os.path.join(data_dir, "affinity_data.csv")).sort_values(by="tag", axis=0, ascending=True)
+        aff_data = pd.read_csv(aff_data_file).sort_values(by="tag", axis=0, ascending=True)
         # for functional testing
         # aff_data = aff_data[0:50]
         ecifp_header = self._ecifp_helper.get_possible_pl() + LIGAND_DESC
@@ -162,4 +187,4 @@ class ECIFP_Collector:
 
 if __name__ == '__main__':
     ecifp_collector = ECIFP_Collector([6.0])
-    ecifp_collector.joint_collect("")
+    ecifp_collector.joint_collect("AUG")

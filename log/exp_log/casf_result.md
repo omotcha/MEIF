@@ -14,6 +14,8 @@ ECIFP::GBT          0.828    1.22
 ECIFP::CatBoost     0.812    1.27
 ECIFP::LightGBM     0.826    1.23
 ECIF_WOLD::GBT      0.826    1.23
+ECIF_AUG::GBT       0.838    1.19
+ECIF_AUG::LightGMBL 0.838    1.19
 ```
 
 - ranking power
@@ -28,11 +30,13 @@ The Predictive index (PI)
                         SP      tau       PI
 ECIF::GBT            0.711    0.625    0.732
 ECIF::CatBoost       0.674    0.565    0.706
-ECIF::LightGBMXT     0.691    0.586    20.728
+ECIF::LightGBMXT     0.691    0.586    0.728
 ECIFP::GBT           0.735    0.660    0.755
 ECIFP::CatBoost      0.684    0.596    0.705
 ECIFP::LightGBM      0.663    0.575    0.679
 ECIF_WOLD::GBT       0.679    0.586    0.701
+ECIF_AUG::GBT        0.725    0.628    0.747
+ECIF_AUG::LightGMBL  0.732    0.642    0.759
 ```
 
 - docking power
@@ -51,6 +55,8 @@ ECIFP::GBT           0.807    0.856    0.902    |   0.220    0.228    0.239    0
 ECIFP::CatBoost      0.818    0.870    0.912    |   0.224    0.222    0.233    0.252    0.272    0.292    0.312    0.337    0.353
 ECIFP::LightGBM      0.698    0.779    0.818    |   0.194    0.189    0.182    0.195    0.215    0.230    0.245    0.265    0.283
 ECIF_WOLD::GBT       0.909    0.923    0.944    |   0.275    0.271    0.281    0.295    0.311    0.327    0.346    0.369    0.385
+ECIF_AUG::GBT        0.551    0.639    0.695    |   0.082    0.095    0.109    0.135    0.145    0.159    0.178    0.196    0.207
+ECIF_AUG::LightGBML  0.442    0.547    0.628    |   0.032    0.057    0.069    0.093    0.097    0.098    0.119    0.126    0.207
 ```
 
 time used
@@ -63,6 +69,7 @@ ECIFP::GBT                  2022
 ECIFP::CatBoost             2880
 ECIFP::LightGBM             2568
 ECIF_WOLD::GBT              1733
+ECIF_AUG::GBT               2105
 ```
 
 - screening power
@@ -81,4 +88,6 @@ ECIFP::GBT            2.12     1.30     1.38    |   0.053    0.175    0.281    |
 ECIFP::CatBoost       1.46     1.29     1.45    |   0.035    0.140    0.298    |   0.046    0.123    0.189
 ECIFP::LightGBM       2.43     1.48     1.34    |   0.035    0.140    0.211    |   0.035    0.098    0.172
 ECIF_WOLD::GBT        1.95     1.43     1.44    |   0.053    0.158    0.263    |   0.063    0.158    0.253
+ECIF_AUG::GBT         1.28     1.06     1.21    |   0.053    0.175    0.298    |   0.049    0.088    0.182
+ECIF_AUG::LightGBML   1.19     1.15     1.25    |   0.035    0.158    0.281    |   0.028    0.098    0.140
 ```
