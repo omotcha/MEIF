@@ -8,13 +8,14 @@ import os
 from configs.config import model_test_dir, casf_dir, tmp_dir, dataset_2016_dir, log_dir
 from configs.config import ecif_gbt, ecif_catboost, ecif_lightgbmxt, ecif_wold, ecif_aug_gbt, ecif_aug_lightgbml
 import pandas as pd
-from util.ECIF import ECIF, LIGAND_DESC
+from util.ECIF import ECIF, LIGAND_DESC, SingleTargetECIF
 from util.RDKitHelper import get_decoy_names_mol2, get_decoy_names_sdf
 import pickle
 from tqdm import tqdm
 import time
 import math
 import multiprocessing
+from joblib.parallel import Parallel, delayed
 
 
 class ECIF_Predictor:
@@ -38,6 +39,20 @@ class ECIF_Predictor:
         """
         ecif = self._ecif_helper.get_ecif(f_pro, f_lig, float(6.0))
         ld = self._ecif_helper.get_ligand_features_by_file_sdf(f_lig)
+        data = ecif + list(ld)
+        cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
+        data_f = pd.DataFrame([data], columns=cols)
+        return self._model.predict(data_f)[0]
+
+    def _predict_mol2(self, f_pro, f_lig):
+        """
+        predict on protein-ligand pairs not in pdbbind dataset
+        :param f_pro: protein file, .pdb
+        :param f_lig: ligand file, .mol2
+        :return:
+        """
+        ecif = self._ecif_helper.get_ecif_mol2(f_pro, f_lig, float(6.0))
+        ld = self._ecif_helper.get_ligand_features_by_file_mol2(f_lig)
         data = ecif + list(ld)
         cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
         data_f = pd.DataFrame([data], columns=cols)
@@ -198,7 +213,7 @@ class ECIF_Predictor:
     def get_model(self):
         return self._model
 
-    def multi_ligd_pred(self, test_name, model):
+    def multi_ligd_pred_sdf(self, test_name, model):
         """
         for extra tests, do estimations on a list of proteins that are not belongs to PDBBind dataset;
         and multiple choices of ligands are matched to one protein
@@ -234,6 +249,54 @@ class ECIF_Predictor:
             for j in tqdm(os.listdir(f_ligs)):
                 f_lig = os.path.join(f_ligs, j)
                 pk = self._predict_sdf(f_prot, f_lig)
+                preds.append(pk)
+                lig_name.append(j[:-4])
+            df_protein_name = pd.DataFrame([i] * len(lig_name), columns=["protein"])
+            df_lig_name = pd.DataFrame(lig_name, columns=["ligand"])
+            df_prediction = pd.DataFrame(preds, columns=["prediction"])
+            result = df_protein_name.join(df_lig_name.join(df_prediction))
+            result.to_csv(os.path.join(model_test_dir, test_name, "{}\\{}_result.csv".format(i, i)))
+
+        end = time.perf_counter()
+        print('\n')
+        print('run time: {} seconds'.format(round(end - start)))
+
+    def multi_ligd_pred_mol2(self, test_name, model):
+        """
+        for extra tests, do estimations on a list of proteins that are not belongs to PDBBind dataset;
+        and multiple choices of ligands are matched to one protein
+        Caution: file structure of subtest folder should be:
+        ├── {test_name}(folder)
+            ├── {protein_id}(folder)
+                ├── {protein_id}_protein.pdb
+                ├── ligs(folder)
+                    ├── {ligand_name}.mol2
+                    ├── {ligand_name}.mol2
+                    ├── ...
+            ├── {protein_id}(folder)
+                ├── {protein_id}_protein.pdb
+                ├── ligs(folder)
+                    ├── {ligand_name}.mol2
+                    ├── {ligand_name}.mol2
+                    ├── ...
+            ├── ...
+        :param test_name: subtest folder
+        :param model: model
+        :return:
+        """
+        print("\n")
+        ids = os.listdir(os.path.join(model_test_dir, test_name))
+        start = time.perf_counter()
+        if model is not None:
+            self.load_model(model)
+        for i in ids:
+            preds = []
+            lig_name = []
+            f_prot = os.path.join(model_test_dir, test_name, "{}\\{}_protein.pdb".format(i, i))
+            f_ligs = os.path.join(model_test_dir, test_name, "{}\\ligs".format(i))
+            for j in tqdm(os.listdir(f_ligs)):
+                f_lig = os.path.join(f_ligs, j)
+                pk = self._predict_mol2(f_prot, f_lig)
                 preds.append(pk)
                 lig_name.append(j[:-4])
             df_protein_name = pd.DataFrame([i] * len(lig_name), columns=["protein"])
@@ -646,6 +709,67 @@ class ECIF_Predictor:
         return
 
 
+class SingleTargetPredictor:
+    _model = None
+    _ecif_helper = None
+    _cols = None
+
+    def __init__(self, target, model):
+        """
+
+        :param target:
+        :param model:
+        """
+        self._ecif_helper = SingleTargetECIF(target)
+        self._model = pickle.load(open(model, 'rb'))
+        self._cols = self._ecif_helper.get_possible_pl() + LIGAND_DESC
+
+    def predict_block(self, block):
+        data = self._ecif_helper.get_single_dataitem(block, distance_cutoff=6.0)
+        data_f = pd.DataFrame([data], columns=self._cols)
+        prediction = self._model.predict(data_f)[0]
+        lid = block.split("\n")[0]
+        return lid, prediction
+
+    def predict_blocks(self, blocks):
+        return Parallel(n_jobs=-1, backend="threading")(delayed(self.predict_block)(block) for block in blocks)
+
+    def para_predict_sdf(self, f_lig):
+        start = time.perf_counter()
+        contents = open(f_lig, 'r').read()
+        blocks = [c + "$$$$\n" for c in contents.split("$$$$\n")[:-1]]
+        # for test
+        blocks = blocks[0:1000]
+        result = self.predict_blocks(blocks)
+        result = pd.DataFrame(result, columns=["ID", "ecif_prediction"])
+        result.to_csv(os.path.join(model_test_dir, "output", "ecif_result.csv"), index=False)
+        end = time.perf_counter()
+        print('\n')
+        print('run time: {} seconds'.format(round(end - start)))
+
+    def predict_sdf(self, f_lig):
+        """
+        predict on protein-ligand pairs not in pdbbind dataset
+        :param f_lig: ligand file, .sdf
+        :return:
+        """
+        start = time.perf_counter()
+        contents = open(f_lig, 'r').read()
+        blocks = [c + "$$$$\n" for c in contents.split("$$$$\n")[:-1]]
+        # for test
+        # blocks = blocks[0:1000]
+        lids = [block.split("\n")[0] for block in blocks]
+        data = [self._ecif_helper.get_single_dataitem(block, distance_cutoff=6.0) for block in tqdm(blocks)]
+        data_f = pd.DataFrame(data, columns=self._cols)
+        prediction = self._model.predict(data_f)
+        result = pd.DataFrame({"ID": lids, "ecif_prediction": prediction})
+        result.to_csv(os.path.join(model_test_dir, "output", "ecif_result.csv"), index=False)
+        end = time.perf_counter()
+        print('\n')
+        print('run time: {} seconds'.format(round(end - start)))
+        return
+
+
 def target_based_predict_worker(targets, model):
     """
 
@@ -800,7 +924,7 @@ def test():
 
 
 if __name__ == '__main__':
-    predictor = ECIF_Predictor(ecif_aug_lightgbml)
+    predictor = ECIF_Predictor(ecif_gbt)
     # predictor.predict_on_core(None)
     # predictor.predict_wold_on_core(None)
     # predictor.predict_on_decoy_sdf(None)
@@ -809,8 +933,11 @@ if __name__ == '__main__':
     # predictor.predict_wold_on_single_decoy_file(os.path.join(casf_dir["decoys"], "4mme_decoys.mol2"), None)
     # target_based_predict_modulator(6, ecif_aug_lightgbml)
     # target_wold_based_predict_modulator(6, ecif_wold)
-    target_based_on_single_decoy_file("4mme.mol2", predictor)
+    # target_based_on_single_decoy_file("4mme.mol2", predictor)
     # target_wold_based_on_single_decoy_file("4mme.mol2", predictor)
     # test()
-    # predictor.multi_ligd_pred("20220907", None)
+    # predictor.multi_ligd_pred_sdf("20221024", None)
 
+    st_predictor = SingleTargetPredictor("E:\\model_test\\20221024\\pocket.pdb", ecif_gbt)
+    st_predictor.predict_sdf("E:\\model_test\\20221024\\all.sdf")
+    # st_predictor.para_predict_sdf("E:\\model_test\\20221024\\all.sdf")

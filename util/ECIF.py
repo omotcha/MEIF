@@ -14,6 +14,7 @@ from rdkit import Chem
 import pandas as pd
 from scipy.spatial.distance import cdist
 from util.RDKitHelper import Mol2MolSupplier
+from tqdm import tqdm
 
 PROTEIN_ELEMENTS = ["C", "N", "O", "S"]
 LIGAND_ELEMENTS = ["Br", "C", "Cl", "F", "I", "N", "O", "P", "S"]
@@ -680,6 +681,201 @@ class ECIF:
         print(ecif.count(0)/len(ecif))
 
 
+class SingleTargetECIF:
+    _desc_calculator = MolecularDescriptorCalculator(LIGAND_DESC)
+    _possible_pl = [i[0] + "-" + i[1] for i in product(PROTEIN_ATOMS, LIGAND_ATOMS)]
+    _cached_protein = None
+
+    @staticmethod
+    def _get_atom_type(atom):
+        """
+
+        :param atom: RDKit supported atom type
+        :return:
+          an ECIF::atom_types
+        #     Atom symbol;
+        #     Explicit valence;
+        #     Attached heavy atoms;
+        #     Attached hydrogens;
+        #     Aromaticity;
+        #     Ring membership
+        """
+        AtomType = [atom.GetSymbol(),
+                    str(atom.GetExplicitValence()),
+                    str(len([x.GetSymbol() for x in atom.GetNeighbors() if x.GetSymbol() != "H"])),
+                    str(len([x.GetSymbol() for x in atom.GetNeighbors() if x.GetSymbol() == "H"])),
+                    str(int(atom.GetIsAromatic())),
+                    str(int(atom.IsInRing())),
+                    ]
+
+        return ";".join(AtomType)
+
+    @staticmethod
+    def _load_protein(f_prot):
+        """
+        This function takes a PDB for a protein as input and returns a pandas DataFrame
+        with its atom types labeled according to ECIF
+        :param f_prot: protein file in PDB format
+        :return: pandas DataFrame
+        """
+        fp = open(f_prot)
+        prot_atoms = []
+        keys = pd.read_csv(os.path.join(data_dir, "keys_ecif.csv"), sep=",")
+        for line in fp:
+            if line[:4] == "ATOM":
+                candidate_symbol = line[12:16].replace(" ", "")
+                if len(candidate_symbol) < 4 and candidate_symbol[0] != "H" or (
+                        len(candidate_symbol) == 4 and candidate_symbol[0] != "H" and candidate_symbol[1] != "H"):
+                    prot_atoms.append([int(line[6:11]),
+                                       line[17:20] + "-" + candidate_symbol,
+                                       float(line[30:38]),
+                                       float(line[38:46]),
+                                       float(line[46:54])])
+        fp.close()
+        df = pd.DataFrame(prot_atoms, columns=["ATOM_INDEX", "PDB_ATOM", "X", "Y", "Z"])
+        df = df.merge(keys, left_on='PDB_ATOM', right_on='PDB_ATOM')[
+            ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]].sort_values(by="ATOM_INDEX").reset_index(drop=True)
+        return df
+
+    def _load_ligand(self, lig_block):
+        """
+        This function takes a block string for a ligand as input and returns a pandas DataFrame
+        with its atom types labeled according to ECIF
+        :param lig_block: ligand block
+        :return:
+        """
+        m = Chem.MolFromMolBlock(lig_block)
+        m.UpdatePropertyCache(strict=False)
+        ligd_atoms = []
+        for atom in m.GetAtoms():
+            symbol = atom.GetSymbol()
+            if symbol != "H":
+                if symbol not in LIGAND_ELEMENTS:
+                    continue
+                else:
+                    entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                entry.append(float("{0:.4f}".format(pos.x)))
+                entry.append(float("{0:.4f}".format(pos.y)))
+                entry.append(float("{0:.4f}".format(pos.z)))
+                ligd_atoms.append(entry)
+        df = pd.DataFrame(ligd_atoms)
+        df.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
+        return df
+
+    def _get_pl_pairs(self, lig_blocks, distance_cutoff=6.0):
+        """
+        This function returns the protein-ligand atom-type pairs for a given distance cutoff
+        :param lig_blocks:
+        :param distance_cutoff:
+        :return:
+        """
+        Target = pd.DataFrame(self._cached_protein)
+        ret = []
+        for lig_block in lig_blocks:
+            Ligand = self._load_ligand(lig_block)
+
+            for i in ["X", "Y", "Z"]:
+                Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+                Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+            # Get all possible pairs
+            Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
+            Pairs = [x[0] + "-" + x[1] for x in Pairs]
+            Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
+            Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+            Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+            Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+            Pairs = pd.concat([Pairs, Distances], axis=1)
+            Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+            ret.append(Pairs)
+        return ret
+
+    def __init__(self, f_prot):
+        self._cached_protein = self._load_protein(f_prot)
+
+    def get_ecifs(self, lig_blocks, distance_cutoff=6.0):
+        """
+        get ECIF fps from ligand blocks(list of strings) and cached proteins(pandas dataframe)
+        :param lig_blocks:
+        :param distance_cutoff:
+        :return:
+        """
+        Pairs_List = self._get_pl_pairs(lig_blocks, distance_cutoff=distance_cutoff)
+        ret = []
+        # ret = [[list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl] for Pairs in Pairs_List]
+        for Pairs in tqdm(Pairs_List):
+            ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
+            ret.append(ecif)
+        return ret
+
+    def get_lds(self, lig_blocks):
+        for lig_block in lig_blocks:
+            ligand = Chem.MolFromMolBlock(lig_block)
+            if ligand is None:
+                return None
+            ligand.UpdatePropertyCache(strict=False)
+            Chem.GetSymmSSSR(ligand)
+            return self._desc_calculator.CalcDescriptors(ligand)
+
+    def get_single_dataitem(self, lig_block, distance_cutoff=6.0):
+        m = Chem.MolFromMolBlock(lig_block)
+        if m is None:
+            return None
+        m.UpdatePropertyCache(strict=False)
+        Chem.GetSymmSSSR(m)
+        ld = self._desc_calculator.CalcDescriptors(m)
+        ligd_atoms = []
+        for atom in m.GetAtoms():
+            symbol = atom.GetSymbol()
+            if symbol != "H":
+                if symbol not in LIGAND_ELEMENTS:
+                    continue
+                else:
+                    entry = [int(atom.GetIdx()), self._get_atom_type(atom)]
+                pos = m.GetConformer().GetAtomPosition(atom.GetIdx())
+                entry.append(float("{0:.4f}".format(pos.x)))
+                entry.append(float("{0:.4f}".format(pos.y)))
+                entry.append(float("{0:.4f}".format(pos.z)))
+                ligd_atoms.append(entry)
+        Ligand = pd.DataFrame(ligd_atoms)
+        Ligand.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
+        Target = pd.DataFrame(self._cached_protein)
+        for i in ["X", "Y", "Z"]:
+            Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
+            Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
+
+        # Get all possible pairs
+        Pairs = list(product(Target["ECIF_ATOM_TYPE"], Ligand["ECIF_ATOM_TYPE"]))
+        Pairs = [x[0] + "-" + x[1] for x in Pairs]
+        Pairs = pd.DataFrame(Pairs, columns=["ECIF_PAIR"])
+        Distances = cdist(Target[["X", "Y", "Z"]], Ligand[["X", "Y", "Z"]], metric="euclidean")
+        Distances = Distances.reshape(Distances.shape[0] * Distances.shape[1], 1)
+        Distances = pd.DataFrame(Distances, columns=["DISTANCE"])
+
+        Pairs = pd.concat([Pairs, Distances], axis=1)
+        Pairs = Pairs[Pairs["DISTANCE"] <= distance_cutoff].reset_index(drop=True)
+
+        ecif = [list(Pairs["ECIF_PAIR"]).count(x) for x in self._possible_pl]
+        return ecif + list(ld)
+
+    def get_possible_pl(self):
+        return self._possible_pl
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
-    helper = ECIF()
-    helper.testECIF()
+    # helper = ECIF()
+    # helper.testECIF()
+    st_helper = SingleTargetECIF("E:\\model_test\\20221024\\7AMA_pocket.pdb")
+    contents = open("E:\\model_test\\20221024\\all.sdf", 'r').read()
+    blocks = [c + "$$$$\n" for c in contents.split("$$$$\n")[:-1]]
+    ecifs = st_helper.get_ecifs(blocks, distance_cutoff=6.0)
+    print(len(ecifs))
