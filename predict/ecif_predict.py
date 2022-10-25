@@ -753,16 +753,16 @@ class SingleTargetPredictor:
         :param f_lig: ligand file, .sdf
         :return:
         """
+
         start = time.perf_counter()
         contents = open(f_lig, 'r').read()
         blocks = [c + "$$$$\n" for c in contents.split("$$$$\n")[:-1]]
         # for test
-        # blocks = blocks[0:1000]
-        lids = [block.split("\n")[0] for block in blocks]
+        # blocks = blocks[0:1]
         data = [self._ecif_helper.get_single_dataitem(block, distance_cutoff=6.0) for block in tqdm(blocks)]
         data_f = pd.DataFrame(data, columns=self._cols)
         prediction = self._model.predict(data_f)
-        result = pd.DataFrame({"ID": lids, "ecif_prediction": prediction})
+        result = pd.DataFrame({"ID": [block.split("\n")[0] for block in blocks], "ecif_prediction": prediction})
         result.to_csv(os.path.join(model_test_dir, "output", "ecif_result.csv"), index=False)
         end = time.perf_counter()
         print('\n')
@@ -938,6 +938,6 @@ if __name__ == '__main__':
     # test()
     # predictor.multi_ligd_pred_sdf("20221024", None)
 
-    st_predictor = SingleTargetPredictor("E:\\model_test\\20221024\\pocket.pdb", ecif_gbt)
+    st_predictor = SingleTargetPredictor("E:\\model_test\\20221024\\7AMA_pocket.pdb", ecif_gbt)
     st_predictor.predict_sdf("E:\\model_test\\20221024\\all.sdf")
     # st_predictor.para_predict_sdf("E:\\model_test\\20221024\\all.sdf")

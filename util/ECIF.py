@@ -820,9 +820,7 @@ class SingleTargetECIF:
             return self._desc_calculator.CalcDescriptors(ligand)
 
     def get_single_dataitem(self, lig_block, distance_cutoff=6.0):
-        m = Chem.MolFromMolBlock(lig_block)
-        if m is None:
-            return None
+        m = Chem.MolFromMolBlock(lig_block, sanitize=False)
         m.UpdatePropertyCache(strict=False)
         Chem.GetSymmSSSR(m)
         ld = self._desc_calculator.CalcDescriptors(m)
@@ -839,9 +837,8 @@ class SingleTargetECIF:
                 entry.append(float("{0:.4f}".format(pos.y)))
                 entry.append(float("{0:.4f}".format(pos.z)))
                 ligd_atoms.append(entry)
-        Ligand = pd.DataFrame(ligd_atoms)
-        Ligand.columns = ["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"]
-        Target = pd.DataFrame(self._cached_protein)
+        Ligand = pd.DataFrame(ligd_atoms, columns=["ATOM_INDEX", "ECIF_ATOM_TYPE", "X", "Y", "Z"])
+        Target = self._cached_protein.copy(deep=True)
         for i in ["X", "Y", "Z"]:
             Target = Target[Target[i] < float(Ligand[i].max()) + distance_cutoff]
             Target = Target[Target[i] > float(Ligand[i].min()) - distance_cutoff]
@@ -862,13 +859,6 @@ class SingleTargetECIF:
 
     def get_possible_pl(self):
         return self._possible_pl
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
